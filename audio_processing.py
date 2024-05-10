@@ -134,7 +134,7 @@ def switch_audio_data_labels(data, audio_features, switch_probability=0.1):
     data = data.copy()
     num_samples = audio_features.shape[0]
     class_labels = data['label'].unique()
-    for i in range(num_samples):
+    for i in data.index.values:
         if np.random.rand() < switch_probability:
             feature = audio_features[i]
             other_class_features = audio_features[data['label'] != data.iloc[i]['label']]
