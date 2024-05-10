@@ -3,7 +3,7 @@ import tarfile
 import urllib
 
 import numpy as np
-from torch import pdist
+from scipy.spatial.distance import pdist
 from tqdm import tqdm
 
 
@@ -38,7 +38,7 @@ def generate_test_split(data, test_count_per_label=100, features_path='features.
                                        samples_per_class=test_count_per_label)
         test_data.append(sampled_idx)
     test_data = np.concatenate(test_data, axis=0)
-    test_data = data.iloc[test_data]
+    test_data = data.loc[test_data]
     train_data = data.drop(test_data.index)
     return train_data, test_data
 

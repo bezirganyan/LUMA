@@ -72,7 +72,7 @@ def sample_text(data, features_path, compactness=0, num_sampling=10):
                                        num_sampling=num_sampling)
         sampled_data_idx.append(sampled_idx)
     sampled_data_idx = np.concatenate(sampled_data_idx, axis=0)
-    return data.iloc[sampled_data_idx]
+    return data.loc[sampled_data_idx]
 
 
 def add_noise_to_text(data, noisy_data_ratio=0.1, noise_config=None):

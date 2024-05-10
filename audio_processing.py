@@ -203,4 +203,4 @@ def sample_audio(data, features_path, compactness=0, num_sampling=10, samples_pe
         sampled_data_idx.append(sampled_idx)
 
     sampled_data_idx = np.concatenate(sampled_data_idx, axis=0)
-    return data.iloc[sampled_data_idx]
+    return data.loc[sampled_data_idx]
