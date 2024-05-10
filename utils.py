@@ -1,3 +1,5 @@
+import os
+import tarfile
 import urllib
 
 import numpy as np
@@ -24,6 +26,23 @@ def sample_class_idx(class_idx, class_features, closeness_order=0, num_sampling=
     return indexes[best]
 
 
+def generate_test_split(data, test_count_per_label=100, features_path='features.npy', sample_count=50):
+    with open(features_path, 'rb') as f:
+        features = np.load(f)
+
+    test_data = []
+    for cls in data['label'].unique():
+        class_data = data[data['label'] == cls]
+        class_features = features[class_data.index]
+        sampled_idx = sample_class_idx(class_data.index, class_features, num_sampling=sample_count,
+                                       samples_per_class=test_count_per_label)
+        test_data.append(sampled_idx)
+    test_data = np.concatenate(test_data, axis=0)
+    test_data = data.iloc[test_data]
+    train_data = data.drop(test_data.index)
+    return train_data, test_data
+
+
 class DownloadProgressBar(tqdm):
     def update_to(self, b=1, bsize=1, tsize=None):
         if tsize is not None:
@@ -35,3 +54,25 @@ def download_url(url, output_path):
     with DownloadProgressBar(unit='B', unit_scale=True,
                              miniters=1, desc=url.split('/')[-1]) as t:
         urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
+
+
+def download_cifar10_and_100():
+    if os.path.exists('cifar-10-batches-py'):
+        print("CIFAR-10 already exists")
+    else:
+        print("Downloading CIFAR-10")
+        url = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
+        download_url(url, 'cifar-10-python.tar.gz')
+        with tarfile.open('cifar-10-python.tar.gz', 'r:gz') as tar:
+            tar.extractall()
+        print("Downloaded CIFAR-10")
+
+    if os.path.exists('cifar-100-python'):
+        print("CIFAR-100 already exists")
+    else:
+        print("Downloading CIFAR-100")
+        url = 'https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz'
+        download_url(url, 'cifar-100-python.tar.gz')
+        with tarfile.open('cifar-100-python.tar.gz', 'r:gz') as tar:
+            tar.extractall()
+        print("Downloaded CIFAR-100")

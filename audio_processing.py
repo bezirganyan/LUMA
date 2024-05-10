@@ -45,7 +45,7 @@ def perform_loudness_normalization(data_folder):
         soundfile.write(audio_file, normalized_data, sr)
 
 
-def extract_audio_deep_features(data_csv_path, data_path='data', output_path='features.npy'):
+def extract_audio_deep_features(data_csv_path, audio_data_path='data/audio', output_path='features.npy'):
     bundle = torchaudio.pipelines.WAV2VEC2_LARGE
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     data = pd.read_csv(data_csv_path)
@@ -53,7 +53,7 @@ def extract_audio_deep_features(data_csv_path, data_path='data', output_path='fe
         warnings.warn("Using CPU for feature extraction. This can be very slow. Consider using a GPU.")
     model = bundle.get_model().to(device)
     model.eval()
-    dataset = AudioDataset(data, base_path=data_path)
+    dataset = AudioDataset(data, base_path=audio_data_path)
     datloader = torch.utils.data.DataLoader(dataset, batch_size=1)
     features = []
     for waveform, sr, label in tqdm(datloader):
@@ -114,6 +114,36 @@ def add_noise_to_audio(data, audio_data_path, out_location, min_snr=3, max_snr=1
         noisy_out_paths.append(noisy_path)
 
     data['noisy_path'] = noisy_out_paths
+    return data
+
+
+def switch_audio_data_labels(data, audio_features, switch_probability=0.1):
+    """
+    Randomly Switch the labels of the audio data. Switching to a class that is closer in the feature space
+    has higher probability.
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Pandas dataframe containing the audio data
+
+    Returns
+    -------
+    pd.DataFrame
+        Data with the labels switched
+    """
+    data = data.copy()
+    num_samples = audio_features.shape[0]
+    class_labels = data['label'].unique()
+    for i in range(num_samples):
+        if np.random.rand() < switch_probability:
+            feature = audio_features[i]
+            other_class_features = audio_features[data['label'] != data.iloc[i]['label']]
+            distances = np.linalg.norm(feature - other_class_features, axis=1)
+            distances = 1 / distances
+            distances = distances / distances.sum()
+            new_label = np.random.choice(class_labels, p=distances)
+            data.at[i, 'label'] = new_label
+
     return data
 
 
