@@ -1,6 +1,7 @@
 import os
 import tarfile
-import urllib
+import urllib.request
+
 
 import numpy as np
 from scipy.spatial.distance import pdist
