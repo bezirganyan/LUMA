@@ -2,6 +2,7 @@ import argparse
 import os
 
 import pandas as pd
+from omegaconf import OmegaConf
 
 from audio_processing import add_noise_to_audio, extract_audio_deep_features, sample_audio
 from text_processing import add_noise_to_text, extract_deep_text_features, sample_text
@@ -20,10 +21,8 @@ ID_classes = list(range(42))
 ID_class_labels = [class_label_mapping[i] for i in ID_classes]
 
 
-def generate_audio_modality(audio_csv_path, audio_test_csv, audio_data_path, features_path, compactness=0,
-                            num_sampling=10,
-                            add_noise_train=False, add_noise_test=False,
-                            noisy_data_ratio=0.1, min_snr=3, max_snr=10):
+def generate_audio_modality(data_dir, audio_csv_path, audio_test_csv, audio_data_path, features_path,
+                            diversity_cfg, sample_nosie_cfg, label_switch_prob):
     print("Generating audio modality")
     data = pd.read_csv(audio_csv_path, index_col=0)
     train_data = data[data['label'].isin(ID_class_labels)]
@@ -34,17 +33,13 @@ def generate_audio_modality(audio_csv_path, audio_test_csv, audio_data_path, fea
     else:
         train_data, test_data = generate_test_split(train_data, test_count_per_label=100, features_path=features_path)
         test_data.to_csv(audio_test_csv)
-    train_data = sample_audio(train_data, features_path, compactness=compactness, num_sampling=num_sampling)
-    if add_noise_train:
-        train_data = add_noise_to_audio(train_data, audio_data_path, 'noisy_audio', min_snr=min_snr, max_snr=max_snr,
-                                        noisy_data_ratio=noisy_data_ratio)
-    if add_noise_test:
-        test_data = add_noise_to_audio(test_data, audio_data_path, 'noisy_audio', min_snr=min_snr, max_snr=max_snr,
-                                       noisy_data_ratio=noisy_data_ratio)
+    train_data = sample_audio(train_data, features_path, **diversity_cfg)
+    if sample_nosie_cfg.pop('add_noise_train', False):
+        train_data = add_noise_to_audio(train_data, data_dir, audio_data_path, **sample_nosie_cfg)
     ood_data = data[~data['label'].isin(ID_class_labels)]
-    if add_noise_test:
-        ood_data = add_noise_to_audio(ood_data, audio_data_path, 'noisy_audio', min_snr=min_snr, max_snr=max_snr,
-                                      noisy_data_ratio=noisy_data_ratio)
+    if sample_nosie_cfg.pop('add_noise_test', False):
+        test_data = add_noise_to_audio(test_data, data_dir, audio_data_path, 'noisy_audio', **sample_nosie_cfg)
+        ood_data = add_noise_to_audio(ood_data, data_dir, audio_data_path, 'noisy_audio', **sample_nosie_cfg)
     return train_data, test_data, ood_data
 
 
@@ -76,16 +71,20 @@ def generate_image_modality():
 
 def parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--cfg', type=str)
+    parser.add_argument('-c', '--cfg', type=str, default='cfg/default.yml')
     args, unknown = parser.parse_known_args()
     return args, unknown
 
 
 if __name__ == '__main__':
     args, unknown = parse_args()
-    print(args)
-    print(unknown)
-    generate_audio_modality('data/audio/datalist.csv', 'data/audio/datalist_test.csv',
-                            'data/audio', 'audio_features.npy')
-    generate_text_modality('data/text_data.tsv', 'data/text_data_test.tsv', 'text_features.npy')
+    # load yaml config file
+    cfg = OmegaConf.load(args.cfg)
+    data_cfg = cfg.data
+    audio_cfg = cfg.audio
+    generate_audio_modality(data_cfg.data_dir, audio_cfg.audio_csv_path, audio_cfg.audio_test_csv_path,
+                            audio_cfg.audio_data_path,
+                            audio_cfg.audio_features_path, diversity_cfg=audio_cfg.diversity,
+                            sample_nosie_cfg=audio_cfg.sample_noise, label_switch_prob=audio_cfg.label_switch_prob)
+    # generate_text_modality('data/text_data.tsv', 'data/text_data_test.tsv', 'text_features.npy')
     # generate_image_modality()

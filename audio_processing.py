@@ -66,16 +66,18 @@ def extract_audio_deep_features(data_csv_path, audio_data_path='data/audio', out
         np.save(f, features)
 
 
-def add_noise_to_audio(data, audio_data_path, out_location, min_snr=3, max_snr=10, noisy_data_ratio=0.1):
+def add_noise_to_audio(data, data_dir, audio_data_path, output_path, min_snr=3, max_snr=10, noisy_data_ratio=0.1, **kwargs):
     """
     Add noise to the audio data
     Parameters
     ----------
     data : pd.DataFrame
         Pandas dataframe containing the audio data
+    data_dir : str
+        Directory of the data
     audio_data_path : str
         Path to the audio data
-    out_location : str
+    output_path : str
         Location to save the noisy audio data
     min_snr : int, optional, default=3
         Minimum signal-to-noise ratio
@@ -90,24 +92,24 @@ def add_noise_to_audio(data, audio_data_path, out_location, min_snr=3, max_snr=1
         Noisy audio data
     """
     data = data.copy()
-    download_audio_noise_data()
-    noise_files = os.listdir('esc50/ESC-50-master/audio')
-    noise_paths = [os.path.join('esc50/ESC-50-master/audio', file) for file in noise_files]
+    download_audio_noise_data(data_dir)
+    noise_files = os.listdir(os.path.join(data_dir, 'esc50/ESC-50-master/audio'))
+    noise_paths = [os.path.join(data_dir, 'esc50/ESC-50-master/audio', file) for file in noise_files]
     transform = AddBackgroundNoise(
         sounds_path=noise_paths,
         min_snr_db=min_snr,
         max_snr_db=max_snr,
         p=noisy_data_ratio
     )
-    if not os.path.exists(out_location):
-        os.makedirs(out_location)
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
     noisy_out_paths = []
     print("Adding noise to audio data")
     for path in tqdm(data['path']):
         cpath = os.path.join(audio_data_path, path)
         audio, sr = librosa.load(cpath)
         noisy_audio = transform(audio, sample_rate=sr)
-        noisy_path = os.path.join(out_location, path)
+        noisy_path = os.path.join(output_path, path)
         if not os.path.exists(os.path.dirname(noisy_path)):
             os.makedirs(os.path.dirname(noisy_path))
         soundfile.write(noisy_path, noisy_audio, sr)
@@ -147,21 +149,21 @@ def switch_audio_data_labels(data, audio_features, switch_probability=0.1):
     return data
 
 
-def download_audio_noise_data():
-    if os.path.exists('esc50'):
+def download_audio_noise_data(data_path='data'):
+    if os.path.exists(os.path.join(data_path, 'esc50')):
         print("ESC-50 already exists")
         return
 
     print("Downloading audio noise data")
     url = 'https://github.com/karoldvl/ESC-50/archive/master.zip'
     # download the zip file if it doesn't exist
-    if not os.path.exists('ESC-50.zip'):
-        download_url(url, 'ESC-50.zip')
+    if not os.path.exists(os.path.join(data_path, 'ESC-50.zip')):
+        download_url(url, os.path.join(data_path, 'ESC-50.zip'))
     else:
         print("ESC-50.zip already exists")
     # extract the zip file
-    with ZipFile('ESC-50.zip', 'r') as zip_ref:
-        zip_ref.extractall('esc50')
+    with ZipFile(os.path.join(data_path, 'ESC-50.zip'), 'r') as zip_ref:
+        zip_ref.extractall(os.path.join(data_path, 'esc50'))
     print("Downloaded audio noise data")
 
 

@@ -58,7 +58,7 @@ def download_url(url, output_path):
 
 
 def download_cifar10_and_100():
-    if os.path.exists('cifar-10-batches-py'):
+    if os.path.exists('data/cifar-10-batches-py'):
         print("CIFAR-10 already exists")
     else:
         print("Downloading CIFAR-10")
@@ -68,7 +68,7 @@ def download_cifar10_and_100():
             tar.extractall()
         print("Downloaded CIFAR-10")
 
-    if os.path.exists('cifar-100-python'):
+    if os.path.exists('data/cifar-100-python'):
         print("CIFAR-100 already exists")
     else:
         print("Downloading CIFAR-100")
