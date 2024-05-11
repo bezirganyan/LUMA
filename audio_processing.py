@@ -136,8 +136,6 @@ def switch_audio_data_labels(data, audio_features_path, switch_probability=0.1):
     data = data.copy()
     with open(audio_features_path, 'rb') as f:
         audio_features = np.load(f)
-    num_samples = audio_features.shape[0]
-    class_labels = data['label'].unique()
     for i in data.index.values:
         if np.random.rand() < switch_probability:
             feature = audio_features[i]

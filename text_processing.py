@@ -39,6 +39,36 @@ def mask_label_from_text(text, label, tokenizer, stemmer):
         text = text.replace(related_token, '[MASK]')
     return text
 
+def switch_text_data_labels(data, text_features_path, switch_probability=0.1):
+    """
+    Randomly Switch the labels of the text data. Switching to a class that is closer in the feature space
+    has higher probability.
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Pandas dataframe containing the text data
+
+    Returns
+    -------
+    pd.DataFrame
+        Data with the labels switched
+    """
+    data = data.copy()
+    with open(text_features_path, 'rb') as f:
+        text_features = np.load(f)
+    for i in tqdm(data.index.values):
+        if np.random.rand() < switch_probability:
+            feature = text_features[i]
+            other_class_features = text_features[data[data['label'] != data.loc[i]['label']].index]
+            distances = np.linalg.norm(feature - other_class_features, axis=1)
+            other_class_data = data[data['label'] != data.loc[i]['label']].copy()
+            other_class_data['distance'] = distances
+            # mean distance to closest 5 points of each class
+            to_class_distances = other_class_data.groupby('label')['distance'].nsmallest(5).groupby('label').mean()
+            data.at[i, 'label'] = to_class_distances.idxmin()
+
+    return data
+
 
 def extract_deep_text_features(data_csv_path, output_path='features.npy'):
     # Use Bert to extract features from text
@@ -60,6 +90,7 @@ def extract_deep_text_features(data_csv_path, output_path='features.npy'):
     np.save(output_path, features)
 
 
+
 def sample_text(data, features_path, compactness=0, num_sampling=10):
     with open(features_path, 'rb') as f:
         features = np.load(f)
@@ -75,7 +106,7 @@ def sample_text(data, features_path, compactness=0, num_sampling=10):
     return data.loc[sampled_data_idx]
 
 
-def add_noise_to_text(data, noisy_data_ratio=0.1, noise_config=None):
+def add_noise_to_text(data, noisy_data_ratio=0.1, noise_config=None, **kwargs):
     noises = list(noise_config.keys())
     noises = [noise_dict[noise](**noise_config[noise]) for noise in noises]
     noisy_data = data.copy()
