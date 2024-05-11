@@ -104,7 +104,6 @@ def add_noise_to_audio(data, data_dir, audio_data_path, output_path, min_snr=3, 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     noisy_out_paths = []
-    print("Adding noise to audio data")
     for path in tqdm(data['path']):
         cpath = os.path.join(audio_data_path, path)
         audio, sr = librosa.load(cpath)
@@ -191,7 +190,6 @@ def sample_audio(data, features_path, compactness=0, num_sampling=10, samples_pe
     pd.DataFrame
         Sampled audio data
     """
-    print("Sampling audio data")
     with open(features_path, 'rb') as f:
         features = np.load(f)
 

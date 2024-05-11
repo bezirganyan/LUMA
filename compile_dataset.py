@@ -23,26 +23,41 @@ ID_class_labels = [class_label_mapping[i] for i in ID_classes]
 
 def generate_audio_modality(data_dir, audio_csv_path, audio_test_csv, audio_data_path, features_path,
                             diversity_cfg, sample_nosie_cfg, label_switch_prob):
-    print("Generating audio modality")
+    print("[*] Generating audio modality")
     data = pd.read_csv(audio_csv_path, index_col=0)
     train_data = data[data['label'].isin(ID_class_labels)]
     if not os.path.exists(features_path):
+        print(f'[*] Extracting deep features from {audio_csv_path}')
         extract_audio_deep_features(audio_csv_path, audio_data_path, features_path)
+        print('[+] Features saved successfully!')
     if os.path.exists(audio_test_csv):
+        print(f'[+] Test data found at {audio_test_csv}')
         test_data = pd.read_csv(audio_test_csv)
     else:
+        print(f'[-] Test data not found at {audio_test_csv}')
+        print(f'[*] Generating test data from {audio_csv_path}')
         train_data, test_data = generate_test_split(train_data, test_count_per_label=100, features_path=features_path)
         test_data.to_csv(audio_test_csv)
+        print('[+] Test data generated successfully!')
+    print(f'[*] Sampling audio data from {audio_csv_path}')
     train_data = sample_audio(train_data, features_path, **diversity_cfg)
+    print('[+] Audio data sampled successfully!')
     if sample_nosie_cfg.pop('add_noise_train', False):
+        print(f'[*] Adding noise to train data')
         train_data = add_noise_to_audio(train_data, data_dir, audio_data_path, **sample_nosie_cfg)
+        print('[+] Noise added to train data successfully!')
     ood_data = data[~data['label'].isin(ID_class_labels)]
     if sample_nosie_cfg.pop('add_noise_test', False):
+        print(f'[*] Adding noise to test and OOD data')
         test_data = add_noise_to_audio(test_data, data_dir, audio_data_path, 'noisy_audio', **sample_nosie_cfg)
         ood_data = add_noise_to_audio(ood_data, data_dir, audio_data_path, 'noisy_audio', **sample_nosie_cfg)
+        print('[+] Noise added to test and OOD data successfully!')
     if label_switch_prob > 0:
+        print(f'[*] Switching labels of train and test data')
         train_data = switch_audio_data_labels(train_data, features_path, switch_probability=label_switch_prob)
         test_data = switch_audio_data_labels(test_data, features_path, switch_probability=label_switch_prob)
+        print('[+] Labels switched successfully!')
+    print('[+] Audio modality generated successfully!')
     return train_data, test_data, ood_data
 
 
