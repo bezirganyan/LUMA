@@ -119,7 +119,7 @@ def add_noise_to_audio(data, data_dir, audio_data_path, output_path, min_snr=3, 
     return data
 
 
-def switch_audio_data_labels(data, audio_features, switch_probability=0.1):
+def switch_audio_data_labels(data, audio_features_path, switch_probability=0.1):
     """
     Randomly Switch the labels of the audio data. Switching to a class that is closer in the feature space
     has higher probability.
@@ -134,17 +134,20 @@ def switch_audio_data_labels(data, audio_features, switch_probability=0.1):
         Data with the labels switched
     """
     data = data.copy()
+    with open(audio_features_path, 'rb') as f:
+        audio_features = np.load(f)
     num_samples = audio_features.shape[0]
     class_labels = data['label'].unique()
     for i in data.index.values:
         if np.random.rand() < switch_probability:
             feature = audio_features[i]
-            other_class_features = audio_features[data['label'] != data.iloc[i]['label']]
+            other_class_features = audio_features[data[data['label'] != data.loc[i]['label']].index]
             distances = np.linalg.norm(feature - other_class_features, axis=1)
-            distances = 1 / distances
-            distances = distances / distances.sum()
-            new_label = np.random.choice(class_labels, p=distances)
-            data.at[i, 'label'] = new_label
+            other_class_data = data[data['label'] != data.loc[i]['label']].copy()
+            other_class_data['distance'] = distances
+            # mean distance to closest 5 points of each class
+            to_class_distances = other_class_data.groupby('label')['distance'].nsmallest(5).groupby('label').mean()
+            data.at[i, 'label'] = to_class_distances.idxmin()
 
     return data
 

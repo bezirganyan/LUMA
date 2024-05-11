@@ -4,7 +4,7 @@ import os
 import pandas as pd
 from omegaconf import OmegaConf
 
-from audio_processing import add_noise_to_audio, extract_audio_deep_features, sample_audio
+from audio_processing import add_noise_to_audio, extract_audio_deep_features, sample_audio, switch_audio_data_labels
 from text_processing import add_noise_to_text, extract_deep_text_features, sample_text
 from utils import generate_test_split
 
@@ -40,6 +40,9 @@ def generate_audio_modality(data_dir, audio_csv_path, audio_test_csv, audio_data
     if sample_nosie_cfg.pop('add_noise_test', False):
         test_data = add_noise_to_audio(test_data, data_dir, audio_data_path, 'noisy_audio', **sample_nosie_cfg)
         ood_data = add_noise_to_audio(ood_data, data_dir, audio_data_path, 'noisy_audio', **sample_nosie_cfg)
+    if label_switch_prob > 0:
+        train_data = switch_audio_data_labels(train_data, features_path, switch_probability=label_switch_prob)
+        test_data = switch_audio_data_labels(test_data, features_path, switch_probability=label_switch_prob)
     return train_data, test_data, ood_data
 
 
@@ -82,9 +85,13 @@ if __name__ == '__main__':
     cfg = OmegaConf.load(args.cfg)
     data_cfg = cfg.data
     audio_cfg = cfg.audio
+    text_cfg = cfg.text
     generate_audio_modality(data_cfg.data_dir, audio_cfg.audio_csv_path, audio_cfg.audio_test_csv_path,
                             audio_cfg.audio_data_path,
                             audio_cfg.audio_features_path, diversity_cfg=audio_cfg.diversity,
                             sample_nosie_cfg=audio_cfg.sample_noise, label_switch_prob=audio_cfg.label_switch_prob)
-    # generate_text_modality('data/text_data.tsv', 'data/text_data_test.tsv', 'text_features.npy')
-    # generate_image_modality()
+    # generate_text_modality(text_cfg.text_csv_path, text_cfg.text_test_csv_path, text_cfg.text_features_path,
+    #                        compactness=text_cfg.compactness, num_sampling=text_cfg.num_sampling,
+    #                        add_noise_train=text_cfg.add_noise_train, add_noise_test=text_cfg.add_noise_test,
+    #                        noisy_data_ratio=text_cfg.noisy_data_ratio, noise_config=text_cfg.noise_config)
+    # # generate_image_modality()
