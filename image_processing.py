@@ -2,12 +2,16 @@ import os
 
 import numpy as np
 import pandas as pd
-import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import transforms
 from tqdm import tqdm
 
+from image_noise import brightness, contrast, defocus_blur, elastic_transform, fog, frost, gaussian_noise, glass_blur, \
+    impulse_noise, \
+    jpeg_compression, \
+    motion_blur, \
+    pixelate, shot_noise, snow, zoom_blur
 from utils import download_url
 
 label_name_mapping = {'aquarium_fish': 'fish',
@@ -16,6 +20,24 @@ label_name_mapping = {'aquarium_fish': 'fish',
                       'rose': 'roses',
                       'pine_tree': 'pine',
                       'palm_tree': 'palm'}
+
+noise_mapping = {
+    'gaussian_noise': gaussian_noise,
+    'shot_noise': shot_noise,
+    'impulse_noise': impulse_noise,
+    'defocus_blur': defocus_blur,
+    'frosted_glass_blur': glass_blur,
+    'motion_blur': motion_blur,
+    'zoom_blur': zoom_blur,
+    'snow': snow,
+    'fog': fog,
+    'frost': frost,
+    'brightness': brightness,
+    'contrast': contrast,
+    'elastic': elastic_transform,
+    'pixelate': pixelate,
+    'jpeg_compression': jpeg_compression
+}
 
 
 def load_cifar10():
@@ -118,14 +140,13 @@ class ImageDataset(Dataset):
         label = self.data['class'][idx]
         return image, label
 
+
 def finetune_model(data, model, output_path):
     """
     Finetune the model on the given data
     """
     import torch
-    from torch.utils.data import DataLoader, Dataset
-    from torchvision import transforms
-    from PIL import Image
+    from torch.utils.data import DataLoader
 
     dataset = ImageDataset(data)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
@@ -191,6 +212,24 @@ def extract_deep_image_features(data, output_path='data/features.npy', model_wei
     with open(output_path, 'wb+') as f:
         np.save(f, features)
     return features
+
+
+def add_noise(image, noise_config):
+    convert_img = transforms.Compose([transforms.ToTensor(), transforms.ToPILImage()])
+    noise_type = np.random.choice(list(noise_config.keys()))
+    noise = noise_mapping[noise_type](convert_img(image), **noise_config[noise_type])
+    # return image as np array
+    return np.array(noise)
+
+
+def add_noise_to_image(data, noise_config, output_path, noise_data_ratio=0.1, **kwargs):
+    noisy_data_path = output_path
+    data = data.copy()
+    tqdm.pandas()
+    data['image'] = data['image'].progress_apply(
+        lambda x: add_noise(x, noise_config) if np.random.rand() < noise_data_ratio else x)
+    data.to_pickle(noisy_data_path)
+    return data
 
 
 if __name__ == '__main__':

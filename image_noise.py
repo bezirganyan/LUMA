@@ -225,10 +225,10 @@ def frost(x, severity=1):
     c = [(1, 0.2), (1, 0.3), (0.9, 0.4), (0.85, 0.4), (0.75, 0.45)][severity - 1]
     idx = np.random.randint(5)
     filename = \
-        ['.data/image_noise_files/frost1.png', '.data/image_noise_files/frost2.png',
-         '.data/image_noise_files/frost3.png',
-         '.data/image_noise_files/frost4.jpg', '.data/image_noise_files/frost5.jpg',
-         '.data/image_noise_files/frost6.jpg'][
+        ['./data/image_noise_files/frost1.png', './data/image_noise_files/frost2.png',
+         './data/image_noise_files/frost3.png',
+         './data/image_noise_files/frost4.jpg', './data/image_noise_files/frost5.jpg',
+         './data/image_noise_files/frost6.jpg'][
             idx]
     frost = cv2.imread(filename)
     frost = cv2.resize(frost, (0, 0), fx=0.2, fy=0.2)

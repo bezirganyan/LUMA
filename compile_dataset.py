@@ -6,7 +6,8 @@ import pandas as pd
 from omegaconf import OmegaConf
 
 from audio_processing import add_noise_to_audio, extract_audio_deep_features, sample_audio, switch_audio_data_labels
-from image_processing import extract_deep_image_features, get_edm_generated_data, load_cifar10, load_cifar100
+from image_processing import add_noise_to_image, extract_deep_image_features, get_edm_generated_data, load_cifar10, \
+    load_cifar100
 from text_processing import add_noise_to_text, extract_deep_text_features, sample_text, switch_text_data_labels
 from utils import generate_test_split
 
