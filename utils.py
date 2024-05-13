@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 def sample_class_idx(class_idx, class_features, closeness_order=0, num_sampling=10, samples_per_class=600):
     distances = np.linalg.norm(class_features - class_features.mean(0).reshape(1, -1), axis=1) ** closeness_order
-    distances = 1 / distances
+    distances = 1 / (distances + 1e-6)
     distances = distances / distances.sum()
     indexes = []
     total_distacnes = []

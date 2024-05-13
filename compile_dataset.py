@@ -1,10 +1,12 @@
 import argparse
 import os
 
+import numpy as np
 import pandas as pd
 from omegaconf import OmegaConf
 
 from audio_processing import add_noise_to_audio, extract_audio_deep_features, sample_audio, switch_audio_data_labels
+from image_processing import extract_deep_image_features, get_edm_generated_data, load_cifar10, load_cifar100
 from text_processing import add_noise_to_text, extract_deep_text_features, sample_text, switch_text_data_labels
 from utils import generate_test_split
 
@@ -25,6 +27,7 @@ def generate_audio_modality(data_dir, audio_csv_path, audio_test_csv, audio_data
                             diversity_cfg, sample_nosie_cfg, label_switch_prob):
     print("[*] Generating audio modality")
     data = pd.read_csv(audio_csv_path, index_col=0)
+    data['class'] = data['label'].apply(lambda x: label_class_mapping[x])
     train_data = data[data['label'].isin(ID_class_labels)]
     if not os.path.exists(features_path):
         print(f'[*] Extracting deep features from {audio_csv_path}')
@@ -65,6 +68,7 @@ def generate_text_modality(text_tsv_path, text_test_tsv, features_path, diversit
                            label_switch_prob):
     print("[*] Generating text modality")
     data = pd.read_csv(text_tsv_path, sep='\t')
+    data['class'] = data['label'].apply(lambda x: label_class_mapping[x])
     train_data = data[data['label'].isin(ID_class_labels)]
     if not os.path.exists(features_path):
         print(f'[*] Extracting deep features from {text_tsv_path}')
@@ -102,8 +106,74 @@ def generate_text_modality(text_tsv_path, text_test_tsv, features_path, diversit
     return train_data, test_data, ood_data
 
 
-def generate_image_modality():
-    print("Generating image modality")
+def generate_image_modality(image_csv_path, image_test_csv, features_path, image_data_path, diversity_cfg,
+                            sample_nosie_cfg, label_switch_prob):
+    print("[*] Generating image modality")
+    if not os.path.exists(image_csv_path):
+        data = generate_cifar_50_data(image_csv_path)
+    else:
+        data = pd.read_csv(image_csv_path)
+        data['image'] = data['image'].apply(lambda x: np.fromstring(x[1:-1], sep=' '))
+        data['image'] = data['image'].apply(lambda x: x.reshape(32, 32, 3).astype(np.uint8))
+    data['class'] = data['label'].apply(lambda x: label_class_mapping[x])
+    train_data = data[data['label'].isin(ID_class_labels)]
+    if not os.path.exists(features_path):
+        print(f'[*] Extracting deep features from {image_csv_path}')
+        features = extract_deep_image_features(data, features_path)
+        print('[+] Features saved successfully!')
+    if os.path.exists(image_test_csv):
+        print(f'[+] Test data found at {image_test_csv}')
+        test_data = pd.read_csv(image_test_csv)
+    else:
+        print(f'[-] Test data not found at {image_test_csv}')
+        print(f'[*] Generating test data from {image_csv_path}')
+        train_data, test_data = generate_test_split(train_data, test_count_per_label=100, features_path=features_path)
+        test_data.to_csv(image_test_csv)
+        print('[+] Test data generated successfully!')
+    if sample_nosie_cfg.pop('add_noise_train', False):
+        print(f'[*] Adding noise to train data')
+        train_data = add_noise_to_image(train_data, **sample_nosie_cfg)
+        print('[+] Noise added to train data successfully!')
+    ood_data = data[~data['label'].isin(ID_class_labels)]
+    if sample_nosie_cfg.pop('add_noise_test', False):
+        print(f'[*] Adding noise to test and OOD data')
+        test_data = add_noise_to_image(test_data, **sample_nosie_cfg)
+        ood_data = add_noise_to_image(ood_data, **sample_nosie_cfg)
+        print('[+] Noise added to test and OOD data successfully!')
+    if label_switch_prob > 0:
+        print(f'[*] Switching labels of train and test data')
+        train_data = switch_image_data_labels(train_data, features_path, switch_probability=label_switch_prob)
+        test_data = switch_image_data_labels(test_data, features_path, switch_probability=label_switch_prob)
+        print('[+] Labels switched successfully!')
+
+
+def generate_cifar_50_data(image_csv_path):
+    print(f'[-] Image data not found at {image_csv_path}')
+    print('[*] Loading CIFAR-50 dataset')
+    data_10, test_data_10, label_names_10 = load_cifar10()
+    print('[+] CIFAR-50 dataset loaded successfully!')
+    print('[*] Loading CIFAR-100 dataset')
+    data_100, test_data_100, label_names_100 = load_cifar100()
+    print('[+] CIFAR-100 dataset loaded successfully!')
+    print('[*] Loading generated CIFAR-100 dataset')
+    edm_data = get_edm_generated_data('./data', label_names_100, label_class_mapping.keys())
+    print('[+] Loaded generated CIFAR-100 dataset loaded successfully!')
+    edm_data['source'] = 'synthetic100'
+    data_100['source'] = 'cifar100'
+    data_10['source'] = 'cifar10'
+    data = pd.concat([data_10, data_100, edm_data], axis=0)
+    data = data[data['label'].isin(label_class_mapping.keys())]
+    data = data.reset_index(drop=True)
+    # convert images to 1 dimensional array, so that it can be saved in csv file
+    data_to_save = data.copy()
+    data_to_save['image'] = data_to_save['image'].apply(lambda x: x.reshape(-1)).map(list).astype(str).str.replace(',', '')
+    data_to_save.to_csv(image_csv_path, index=False)
+    data_r = pd.read_csv(image_csv_path)
+    data_r['image'] = data_r['image'].apply(lambda x: np.fromstring(x[1:-1], sep=' '))
+    data_r['image'] = data_r['image'].apply(lambda x: x.reshape(32, 32, 3).astype(np.uint8))
+    assert data.equals(data_r)
+    print('[+] Image data saved successfully!')
+    return data
 
 
 def parse_args() -> tuple[argparse.Namespace, list[str]]:
@@ -120,11 +190,14 @@ if __name__ == '__main__':
     data_cfg = cfg.data
     audio_cfg = cfg.audio
     text_cfg = cfg.text
+    image_cfg = cfg.image
     # generate_audio_modality(data_cfg.data_dir, audio_cfg.audio_csv_path, audio_cfg.audio_test_csv_path,
     #                         audio_cfg.audio_data_path,
     #                         audio_cfg.audio_features_path, diversity_cfg=audio_cfg.diversity,
     #                         sample_nosie_cfg=audio_cfg.sample_noise, label_switch_prob=audio_cfg.label_switch_prob)
-    generate_text_modality(text_cfg.text_tsv_path, text_cfg.text_test_tsv_path, text_cfg.text_features_path,
-                           diversity_cfg=text_cfg.diversity, sample_nosie_cfg=text_cfg.sample_noise,
-                           label_switch_prob=text_cfg.label_switch_prob)
-    # generate_image_modality()
+    # generate_text_modality(text_cfg.text_tsv_path, text_cfg.text_test_tsv_path, text_cfg.text_features_path,
+    #                        diversity_cfg=text_cfg.diversity, sample_nosie_cfg=text_cfg.sample_noise,
+    #                        label_switch_prob=text_cfg.label_switch_prob)
+    generate_image_modality(image_cfg.image_csv_path, image_cfg.image_test_csv_path, image_cfg.image_features_path,
+                            image_cfg.image_data_path, diversity_cfg=image_cfg.diversity,
+                            sample_nosie_cfg=image_cfg.sample_noise, label_switch_prob=image_cfg.label_switch_prob)
