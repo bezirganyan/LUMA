@@ -1,9 +1,5 @@
 data:
   data_dir: data
-  num_classes: 42
-  modalities: [ 'audio', 'image', 'text' ]
-  include_OOD: False
-  samples_per_class: 600
   seed: 42
 
 audio:
