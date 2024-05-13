@@ -4,12 +4,14 @@ data:
   modalities: [ 'audio', 'image', 'text' ]
   include_OOD: False
   samples_per_class: 600
+  seed: 42
 
 audio:
   audio_csv_path: data/audio/datalist.csv
   audio_train_csv_path: data/audio/datalist_train.csv
   audio_test_csv_path: data/audio/datalist_test.csv
   audio_data_path: data/audio
+  audio_ood_csv_path: data/audio/datalist_ood.csv
   audio_features_path: data/audio_features.npy
   diversity:
     compactness: 0
@@ -21,18 +23,20 @@ audio:
     min_snr: 3
     max_snr: 10
     output_path: data/noisy_audio
-  label_switch_prob: 0.5
+  label_switch_prob: 0.
 
 text:
   text_tsv_path: data/text_data.tsv
   text_test_tsv_path: data/text_data_test.tsv
+  text_train_tsv_path: data/text_data_train.tsv
+  text_ood_tsv_path: data/text_data_ood.tsv
   text_features_path: data/text_features.npy
   diversity:
     compactness: 0
     num_sampling: 10
   sample_noise:
-    add_noise_train: True
-    add_noise_test: True
+    add_noise_train: False
+    add_noise_test: False
     noisy_data_ratio: 0.5
     noise_config: # https://nlpaug.readthedocs.io/en/latest/
       KeyboardNoise:
@@ -43,20 +47,21 @@ text:
       SynonymNoise:
         aug_min: 1
         aug_max: 3
-  label_switch_prob: 0.5
+  label_switch_prob: 0.
 
 image:
     image_data_path: data/image_data.pickle
     image_train_path: data/image_data_train.pickle
     image_test_path: data/image_data_test.pickle
+    image_ood_path: data/image_data_ood.pickle
 #    image_data_path: data/image
     image_features_path: data/image_features.npy
     diversity:
       compactness: 0
       num_sampling: 10
     sample_noise:
-        add_noise_train: True
-        add_noise_test: True
+        add_noise_train: False
+        add_noise_test: False
         noisy_data_ratio: 0.5
         output_path: data/noisy_images.pth
         noise_config:
@@ -90,4 +95,4 @@ image:
             severity: 1
           jpeg_compression:
             severity: 1
-    label_switch_prob: 0.5
+    label_switch_prob: 0.
