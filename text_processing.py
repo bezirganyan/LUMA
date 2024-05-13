@@ -39,6 +39,7 @@ def mask_label_from_text(text, label, tokenizer, stemmer):
         text = text.replace(related_token, '[MASK]')
     return text
 
+
 def switch_text_data_labels(data, text_features_path, switch_probability=0.1):
     """
     Randomly Switch the labels of the text data. Switching to a class that is closer in the feature space
@@ -88,7 +89,6 @@ def extract_deep_text_features(data_csv_path, output_path='features.npy'):
     features = np.concatenate(features, axis=0)
     print(f'Saving features to {output_path}, shape: {features.shape}')
     np.save(output_path, features)
-
 
 
 def sample_text(data, features_path, compactness=0, num_sampling=10):

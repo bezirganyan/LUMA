@@ -232,6 +232,38 @@ def add_noise_to_image(data, noise_config, output_path, noise_data_ratio=0.1, **
     return data
 
 
+def switch_image_data_labels(data, image_features_path, switch_probability=0.1):
+    """
+    Randomly Switch the labels of the image data. Switching to a class that is closer in the feature space
+    has higher probability.
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Pandas dataframe containing the image data
+
+    Returns
+    -------
+    pd.DataFrame
+        Data with the labels switched
+    """
+    data = data.copy()
+    with open(image_features_path, 'rb') as f:
+        text_features = np.load(f)
+    for i in tqdm(data.index.values):
+        if np.random.rand() < switch_probability:
+            feature = text_features[i]
+            other_class_features = text_features[data[data['label'] != data.loc[i]['label']].index]
+            distances = np.linalg.norm(feature - other_class_features, axis=1)
+            other_class_data = data[data['label'] != data.loc[i]['label']].copy()
+            other_class_data['distance'] = distances
+            # mean distance to closest 5 points of each class
+            to_class_distances = other_class_data.groupby('label')['distance'].nsmallest(5).groupby('label').mean()
+            data.at[i, 'label'] = to_class_distances.idxmin()
+
+    return data
+
+
+
 if __name__ == '__main__':
     data_10, test_data_10, label_names_10 = load_cifar10()
     data_100, test_data_100, label_names_100 = load_cifar100()
