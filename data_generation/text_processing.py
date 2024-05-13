@@ -7,7 +7,7 @@ from nltk import LancasterStemmer
 from tqdm.auto import tqdm
 from transformers import BertModel, BertTokenizer
 
-from utils import sample_class_idx
+from data_generation.utils import sample_class_idx
 
 noise_dict = {
     'KeyboardNoise': nac.KeyboardAug,

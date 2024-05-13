@@ -13,7 +13,7 @@ from audiomentations import AddBackgroundNoise, Normalize
 from torch.utils.data import Dataset
 from tqdm.auto import tqdm
 
-from utils import download_url, sample_class_idx
+from data_generation.utils import download_url, sample_class_idx
 
 
 class AudioDataset(Dataset):

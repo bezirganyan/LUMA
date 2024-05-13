@@ -7,12 +7,13 @@ from torch.utils.data import Dataset
 from torchvision.transforms import transforms
 from tqdm import tqdm
 
-from image_noise import brightness, contrast, defocus_blur, elastic_transform, fog, frost, gaussian_noise, glass_blur, \
+from data_generation.image_noise import brightness, contrast, defocus_blur, elastic_transform, fog, frost, \
+    gaussian_noise, glass_blur, \
     impulse_noise, \
     jpeg_compression, \
     motion_blur, \
     pixelate, shot_noise, snow, zoom_blur
-from utils import download_url
+from data_generation.utils import download_url
 
 label_name_mapping = {'aquarium_fish': 'fish',
                       'pickup_truck': 'truck',
@@ -54,7 +55,7 @@ def load_cifar10():
         labels.append(label)
     images = np.concatenate(images, axis=0)
     labels = np.concatenate(labels, axis=0)
-    label_names = pd.read_pickle('data/cifar-10-batches-py/batches.meta')['label_names']
+    label_names = pd.read_pickle('../data/cifar-10-batches-py/batches.meta')['label_names']
     for i, label in enumerate(label_names):
         label_names[i] = label_name_mapping.get(label, label)
 
@@ -62,7 +63,7 @@ def load_cifar10():
     data = pd.DataFrame({'image': list(images), 'label': labels})
     data['label'] = data['label'].apply(lambda x: label_names[x])
 
-    test_data = pd.read_pickle('data/cifar-10-batches-py/test_batch')
+    test_data = pd.read_pickle('../data/cifar-10-batches-py/test_batch')
     test_images = test_data['data']
     test_labels = test_data['labels']
     test_images = test_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1)
@@ -75,8 +76,8 @@ def load_cifar100():
     """
     Load the CIFAR-100 dataset
     """
-    data = pd.read_pickle('data/cifar-100-python/train')
-    label_names = pd.read_pickle('data/cifar-100-python/meta')['fine_label_names']
+    data = pd.read_pickle('../data/cifar-100-python/train')
+    label_names = pd.read_pickle('../data/cifar-100-python/meta')['fine_label_names']
     for i, label in enumerate(label_names):
         label_names[i] = label_name_mapping.get(label, label)
     images = data['data']
@@ -84,7 +85,7 @@ def load_cifar100():
     images = images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1)
     data = pd.DataFrame({'image': list(images), 'label': labels})
 
-    test_data = pd.read_pickle('data/cifar-100-python/test')
+    test_data = pd.read_pickle('../data/cifar-100-python/test')
     test_images = test_data['data']
     test_labels = test_data['fine_labels']
     test_images = test_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1)
@@ -263,9 +264,8 @@ def switch_image_data_labels(data, image_features_path, switch_probability=0.1):
     return data
 
 
-
 if __name__ == '__main__':
     data_10, test_data_10, label_names_10 = load_cifar10()
     data_100, test_data_100, label_names_100 = load_cifar100()
     label_names = set(label_names_10).union(set(label_names_100))
-    get_edm_generated_data('./data', label_names_100)
+    get_edm_generated_data('../data', label_names_100)
