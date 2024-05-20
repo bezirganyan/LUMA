@@ -57,23 +57,23 @@ def download_url(url, output_path):
         urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
 
 
-def download_cifar10_and_100():
-    if os.path.exists('../data/cifar-10-batches-py'):
+def download_cifar10_and_100(data_path):
+    if os.path.exists(os.path.join(data_path, 'cifar-10-batches-py')):
         print("CIFAR-10 already exists")
     else:
         print("Downloading CIFAR-10")
         url = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
-        download_url(url, '../cifar-10-python.tar.gz')
-        with tarfile.open('../cifar-10-python.tar.gz', 'r:gz') as tar:
+        download_url(url, os.path.join(data_path, 'cifar-10-python.tar.gz'))
+        with tarfile.open(os.path.join(data_path, 'cifar-10-python.tar.gz'), 'r:gz') as tar:
             tar.extractall()
         print("Downloaded CIFAR-10")
 
-    if os.path.exists('../data/cifar-100-python'):
+    if os.path.exists(os.path.join(data_path, 'cifar-100-python')):
         print("CIFAR-100 already exists")
     else:
         print("Downloading CIFAR-100")
         url = 'https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz'
-        download_url(url, '../cifar-100-python.tar.gz')
-        with tarfile.open('../cifar-100-python.tar.gz', 'r:gz') as tar:
+        download_url(url, os.path.join(data_path, 'cifar-100-python.tar.gz'))
+        with tarfile.open(os.path.join(data_path, 'cifar-100-python.tar.gz'), 'r:gz') as tar:
             tar.extractall()
         print("Downloaded CIFAR-100")

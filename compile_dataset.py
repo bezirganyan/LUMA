@@ -6,11 +6,14 @@ import pandas as pd
 import torch
 from omegaconf import OmegaConf
 
-from audio_processing import add_noise_to_audio, extract_audio_deep_features, sample_audio, switch_audio_data_labels
-from image_processing import add_noise_to_image, extract_deep_image_features, get_edm_generated_data, load_cifar10, \
+from data_generation.audio_processing import add_noise_to_audio, extract_audio_deep_features, sample_audio, \
+    switch_audio_data_labels
+from data_generation.image_processing import add_noise_to_image, extract_deep_image_features, get_edm_generated_data, \
+    load_cifar10, \
     load_cifar100, switch_image_data_labels
-from text_processing import add_noise_to_text, extract_deep_text_features, sample_text, switch_text_data_labels
-from utils import generate_test_split
+from data_generation.text_processing import add_noise_to_text, extract_deep_text_features, sample_text, \
+    switch_text_data_labels
+from data_generation.utils import generate_test_split
 
 label_class_mapping = {'man': 0, 'boy': 1, 'house': 2, 'woman': 3, 'girl': 4, 'table': 5, 'road': 6, 'horse': 7,
                        'dog': 8, 'ship': 9, 'bird': 10, 'mountain': 11, 'bed': 12, 'train': 13, 'bridge': 14,
@@ -111,22 +114,30 @@ def generate_text_modality(text_tsv_path, text_test_path, features_path, diversi
 def generate_image_modality(image_data_path, image_test_path, features_path, diversity_cfg,
                             sample_nosie_cfg, label_switch_prob):
     print("[*] Generating image modality")
+    regenerate_data = False
     if not os.path.exists(image_data_path) or not os.path.exists(image_test_path):
-        data, test_data = generate_cifar_50_data(image_data_path)
+        print(f'[-] Image data not found at {image_data_path}')
+        regenerate_data = True
+        data, test_data = generate_cifar_50_data(image_data_path, image_test_path)
     else:
         data = pd.read_pickle(image_data_path)
         test_data = pd.read_pickle(image_test_path)
+    data = data[data['label'].isin(label_class_mapping.keys())]
+    test_data = test_data[test_data['label'].isin(label_class_mapping.keys())]
     data['class'] = data['label'].apply(lambda x: label_class_mapping[x])
     test_data['class'] = test_data['label'].apply(lambda x: label_class_mapping[x])
     train_data = data[data['label'].isin(ID_class_labels)]
     test_data = test_data[test_data['label'].isin(ID_class_labels)]
-    if not os.path.exists(features_path):
+    if not os.path.exists(features_path) or regenerate_data:
         print(f'[*] Extracting deep features from {image_data_path}')
         features = extract_deep_image_features(data, features_path)
         print('[+] Features saved successfully!')
 
     print(f'[*] Sampling image data from {image_data_path}')
-    train_data = sample_text(train_data, features_path, **diversity_cfg)
+    if diversity_cfg['compactness'] == 0:
+        train_data = train_data[train_data['source'] != 'synthetic100']
+    train_data = sample_text(train_data, features_path, **diversity_cfg, n_samples_per_class=500)
+    test_data = sample_text(test_data, features_path, **diversity_cfg, n_samples_per_class=100)
     print('[+] Image data sampled successfully!')
     if sample_nosie_cfg.pop('add_noise_train', False):
         print(f'[*] Adding noise to train data')
@@ -147,16 +158,16 @@ def generate_image_modality(image_data_path, image_test_path, features_path, div
     return train_data, test_data, ood_data
 
 
-def generate_cifar_50_data(image_csv_path, image_test_path):
+def generate_cifar_50_data(image_csv_path, image_test_path, data_path='./data'):
     print(f'[-] Image data not found at {image_csv_path}')
     print('[*] Loading CIFAR-50 dataset')
-    data_10, test_data_10, label_names_10 = load_cifar10()
+    data_10, test_data_10, label_names_10 = load_cifar10(data_path)
     print('[+] CIFAR-50 dataset loaded successfully!')
     print('[*] Loading CIFAR-100 dataset')
-    data_100, test_data_100, label_names_100 = load_cifar100()
+    data_100, test_data_100, label_names_100 = load_cifar100(data_path)
     print('[+] CIFAR-100 dataset loaded successfully!')
     print('[*] Loading generated CIFAR-100 dataset')
-    edm_data = get_edm_generated_data('./data', label_names_100, label_class_mapping.keys())
+    edm_data = get_edm_generated_data(data_path, label_names_100, label_class_mapping.keys())
     print('[+] Loaded generated CIFAR-100 dataset loaded successfully!')
     edm_data['source'] = 'synthetic100'
     data_100['source'] = 'cifar100'
@@ -170,12 +181,15 @@ def generate_cifar_50_data(image_csv_path, image_test_path):
     test_data = pd.concat([test_data_10, test_data_100], axis=0)
     test_data = test_data[test_data['label'].isin(label_class_mapping.keys())]
     # convert images to 1 dimensional array, so that it can be saved in csv file
+    data = data.reset_index(drop=True)
     data_to_save = data.copy()
     data_to_save.to_pickle(image_csv_path)
+    test_data = test_data.reset_index(drop=True)
     test_data_10.to_pickle(image_test_path)
     data = pd.read_pickle(image_csv_path)
     assert data.equals(data_to_save)
     print('[+] Image data saved successfully!')
+
     return data, test_data
 
 
@@ -262,10 +276,15 @@ if __name__ == '__main__':
                                                                  label_switch_prob=image_cfg.label_switch_prob)
 
     # align the data from different modalities, so that the labels are mached and shuffled(within label)
-
+    print('Image train shape:', image_train.shape, 'Image test shape:', image_test.shape, 'Image OOD shape:')
+    print('Audio train shape:', audio_train.shape, 'Audio test shape:', audio_test.shape, 'Audio OOD shape:')
+    print('Text train shape:', text_train.shape, 'Text test shape:', text_test.shape, 'Text OOD shape:')
     audio_train, text_train, image_train = align_data(audio_train, text_train, image_train)
     audio_test, text_test, image_test = align_data(audio_test, text_test, image_test)
-    audio_ood, text_ood, image_ood = align_data(audio_ood, text_ood, image_ood)
+    audio_ood, text_ood, image_ood = align_ood_data(audio_ood, text_ood, image_ood)
+    assert audio_train.shape[0] == text_train.shape[0] == image_train.shape[0]
+    assert audio_test.shape[0] == text_test.shape[0] == image_test.shape[0]
+    assert audio_ood.shape[0] == text_ood.shape[0] == image_ood.shape[0]
 
     # save the data as pickle or csv or tsv file files
     audio_train.to_csv(audio_cfg.audio_train_csv_path)

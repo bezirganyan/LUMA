@@ -80,6 +80,7 @@ def extract_deep_text_features(data_csv_path, output_path='features.npy'):
     model = BertModel.from_pretrained(bert_version, device_map=device)
 
     data = pd.read_csv(data_csv_path, sep='\t')
+    data = data[['text', 'label']]
     features = []
     for text, label in tqdm(data.values):
         text = mask_label_from_text(text, label, tokenizer, stemmer)
@@ -91,7 +92,7 @@ def extract_deep_text_features(data_csv_path, output_path='features.npy'):
     np.save(output_path, features)
 
 
-def sample_text(data, features_path, compactness=0, num_sampling=10):
+def sample_text(data, features_path, compactness=0, num_sampling=10, n_samples_per_class=500):
     with open(features_path, 'rb') as f:
         features = np.load(f)
     sampled_data_idx = []
@@ -100,7 +101,8 @@ def sample_text(data, features_path, compactness=0, num_sampling=10):
         class_features = features[class_data.index]
         sampled_idx = sample_class_idx(class_data.index, class_features,
                                        closeness_order=compactness,
-                                       num_sampling=num_sampling)
+                                       num_sampling=num_sampling,
+                                       samples_per_class=n_samples_per_class)
         sampled_data_idx.append(sampled_idx)
     sampled_data_idx = np.concatenate(sampled_data_idx, axis=0)
     return data.loc[sampled_data_idx]

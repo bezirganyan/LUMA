@@ -36,10 +36,10 @@ class MultiMUQDataset(Dataset):
         self.targets = self.image_data['label'].values
 
     def __getitem__(self, index):
-        image = self.image_data.loc[index, 'image']
-        audio_path = self.audio_data.loc[index, 'path']
+        image = self.image_data.loc[:, 'image'].iloc[index]
+        audio_path = self.audio_data.loc[:, 'path'].iloc[index]
         audio, sr = torchaudio.load(os.path.join(self.audio_data_path, audio_path))
-        text = self.text_data.loc[index, 'text']
+        text = self.text_data.loc[:, 'text'].iloc[index]
         target = self.label_mapping[self.targets[index]]
 
         if self.image_transform is not None:
@@ -47,7 +47,7 @@ class MultiMUQDataset(Dataset):
         if self.audio_transform is not None:
             audio = self.audio_transform(audio)
         if self.text_transform is not None:
-            text = self.text_transform(text)
+            text = self.text_transform(text, index)
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -64,4 +64,4 @@ if __name__ == '__main__':
     text_path = 'data/text_data_train.tsv'
 
     dataset = MultiMUQDataset(image_path, audio_path, audio_data_path, text_path)
-    print(dataset[3000])
+    print('\n'.join([dataset[i][-2] for i in range(1800, 1810)]))

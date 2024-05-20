@@ -167,7 +167,7 @@ def download_audio_noise_data(data_path='data'):
     print("Downloaded audio noise data")
 
 
-def sample_audio(data, features_path, compactness=0, num_sampling=10, samples_per_class=600):
+def sample_audio(data, features_path, compactness=0, num_sampling=10, samples_per_class=500):
     """
     Sample subset from audio data
     Parameters
