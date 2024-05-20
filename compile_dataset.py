@@ -81,7 +81,7 @@ def generate_text_modality(text_tsv_path, text_test_path, features_path, diversi
         print('[+] Features saved successfully!')
 
     print(f'[*] Sampling text data from {text_tsv_path}')
-    train_data = sample_text(train_data, features_path, **diversity_cfg)
+    train_data = sample_text(train_data, features_path, **diversity_cfg, n_samples_per_class=600)
     print('[+] Text data sampled successfully!')
     if os.path.exists(text_test_path):
         print(f'[+] Test data found at {text_test_path}')
