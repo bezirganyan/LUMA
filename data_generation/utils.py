@@ -65,7 +65,7 @@ def download_cifar10_and_100(data_path):
         url = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
         download_url(url, os.path.join(data_path, 'cifar-10-python.tar.gz'))
         with tarfile.open(os.path.join(data_path, 'cifar-10-python.tar.gz'), 'r:gz') as tar:
-            tar.extractall()
+            tar.extractall(path=data_path)
         print("Downloaded CIFAR-10")
 
     if os.path.exists(os.path.join(data_path, 'cifar-100-python')):
@@ -75,5 +75,5 @@ def download_cifar10_and_100(data_path):
         url = 'https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz'
         download_url(url, os.path.join(data_path, 'cifar-100-python.tar.gz'))
         with tarfile.open(os.path.join(data_path, 'cifar-100-python.tar.gz'), 'r:gz') as tar:
-            tar.extractall()
+            tar.extractall(path=data_path)
         print("Downloaded CIFAR-100")
