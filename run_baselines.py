@@ -1,0 +1,101 @@
+import os
+
+import numpy as np
+import pytorch_lightning as pl
+import torch
+from torchaudio.transforms import MelSpectrogram
+from torchvision.transforms import Resize, ToTensor
+from torchvision.transforms.v2 import Compose, Normalize
+
+from baselines.mc_models import AudioClassifier, ImageClassifier, MultimodalClassifier, TextClassifier
+from baselines.mcdmodel import MCDModel
+from data_generation.text_processing import extract_deep_text_features
+from dataset import MultiMUQDataset
+
+if not os.path.exists('text_features_train.npy'):
+    extract_deep_text_features('data/text_data_train.tsv', output_path='text_features_train.npy')
+if not os.path.exists('text_features_test.npy'):
+    extract_deep_text_features('data/text_data_test.tsv', output_path='text_features_test.npy')
+if not os.path.exists('text_features_ood.npy'):
+    extract_deep_text_features('data/text_data_ood.tsv', output_path='text_features_ood.npy')
+
+
+class Text2FeatureTransform():
+    def __init__(self, features_path):
+        with open(features_path, 'rb') as f:
+            self.features = np.load(f)
+
+    def __call__(self, text, idx):
+        return self.features[idx]
+
+
+class PadCutToSizeAudioTransform():
+    def __init__(self, size):
+        self.size = size
+
+    def __call__(self, audio):
+        if audio.shape[-1] < self.size:
+            audio = torch.nn.functional.pad(audio, (0, self.size - audio.shape[-1]))
+        elif audio.shape[-1] > self.size:
+            audio = audio[:, :self.size]
+        return audio
+
+
+train_image_path = 'data/image_data_train.pickle'
+train_audio_path = 'data/audio/datalist_train.csv'
+train_audio_data_path = 'data/audio'
+train_text_path = 'data/text_data_train.tsv'
+image_transform = Compose([
+    ToTensor(),
+    # Resize((224, 224)),
+    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+train_dataset = MultiMUQDataset(train_image_path, train_audio_path, train_audio_data_path, train_text_path,
+                                text_transform=Text2FeatureTransform('text_features_train.npy'),
+                                audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
+                                image_transform=image_transform)
+
+test_image_path = 'data/image_data_test.pickle'
+test_audio_path = 'data/audio/datalist_test.csv'
+test_audio_data_path = 'data/audio'
+test_text_path = 'data/text_data_test.tsv'
+
+test_dataset = MultiMUQDataset(test_image_path, test_audio_path, test_audio_data_path, test_text_path,
+                               text_transform=Text2FeatureTransform('text_features_test.npy'),
+                               audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
+                               image_transform=image_transform)
+
+ood_image_path = 'data/image_data_ood.pickle'
+ood_audio_path = 'data/audio/datalist_ood.csv'
+ood_audio_data_path = 'data/audio'
+ood_text_path = 'data/text_data_ood.tsv'
+
+ood_dataset = MultiMUQDataset(ood_image_path, ood_audio_path, ood_audio_data_path, ood_text_path,
+                              text_transform=Text2FeatureTransform('text_features_ood.npy'),
+                              audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
+                              image_transform=image_transform)
+train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [int(0.8 * len(train_dataset)),
+                                                                           len(train_dataset) - int(
+                                                                               0.8 * len(train_dataset))])
+
+batch_size = 256
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+ood_loader = torch.utils.data.DataLoader(ood_dataset, batch_size=batch_size, shuffle=False)
+
+# Now we can use the loaders to train a model
+
+acc_dict = {}
+classifiers = [AudioClassifier(42), ImageClassifier(42), TextClassifier(42), MultimodalClassifier(42)]
+for classifiers in classifiers:
+    model = MCDModel(classifiers)
+    trainer = pl.Trainer(max_epochs=50,
+                         gpus=1 if torch.cuda.is_available() else 0,
+                         callbacks=[pl.callbacks.EarlyStopping(monitor='val_loss')])
+    trainer.fit(model, train_loader, val_loader)
+    trainer.test(model, test_loader)
+    # trainer.test(model, ood_loader)
+    acc_dict[classifiers.__class__.__name__] = trainer.callback_metrics["test_acc"]
+for key, value in acc_dict.items():
+    print(f'{key}: {value}')
