@@ -44,8 +44,8 @@ class AudioClassifier(torch.nn.Module):
             MCDropout(dropout) if monte_carlo else torch.nn.Dropout(dropout),
             torch.nn.Flatten()
         )
-        self.classifier = torch.nn.Linear(64 * 6 * 6, num_classes)
-        self.sigma = torch.nn.Linear(64 * 6 * 6, num_classes)
+        self.classifier = torch.nn.Linear(64 * 14 * 14, num_classes)
+        self.sigma = torch.nn.Linear(64 * 14 * 14, num_classes)
 
     def forward(self, x):
         image, audio, text = x
