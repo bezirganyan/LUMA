@@ -80,15 +80,18 @@ def generate_text_modality(text_tsv_path, text_test_path, features_path, diversi
         extract_deep_text_features(text_tsv_path, features_path)
         print('[+] Features saved successfully!')
 
-    print(f'[*] Sampling text data from {text_tsv_path}')
-    train_data = sample_text(train_data, features_path, **diversity_cfg, n_samples_per_class=500)
-    print('[+] Text data sampled successfully!')
     if os.path.exists(text_test_path):
         print(f'[+] Test data found at {text_test_path}')
         test_data = pd.read_csv(text_test_path, sep='\t')
+        print(f'[*] Sampling text data from {text_tsv_path}')
+        train_data = sample_text(train_data, features_path, **diversity_cfg, n_samples_per_class=500)
+        print('[+] Text data sampled successfully!')
     else:
         print(f'[-] Test data not found at {text_test_path}')
         print(f'[*] Generating test data from {text_tsv_path}')
+        print(f'[*] Sampling text data from {text_tsv_path}')
+        train_data = sample_text(train_data, features_path, **diversity_cfg, n_samples_per_class=600)
+        print('[+] Text data sampled successfully!')
         train_data, test_data = generate_test_split(train_data, test_count_per_label=100, features_path=features_path)
         test_data.to_csv(text_test_path, sep='\t')
         print('[+] Test data generated successfully!')
