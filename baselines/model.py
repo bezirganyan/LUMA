@@ -2,8 +2,6 @@ import pytorch_lightning as pl
 import torch
 from torchmetrics import Accuracy
 
-from baselines.utils import MCDropout
-
 
 class MCDModel(pl.LightningModule):
     def __init__(self, model, num_classes=42):
@@ -51,5 +49,11 @@ class MCDModel(pl.LightningModule):
         self.log('test_acc', self.test_acc.compute(), prog_bar=True)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-        return optimizer
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-1)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.33, patience=5,
+                                                               verbose=True)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': scheduler,
+            'monitor': 'val_loss'
+        }

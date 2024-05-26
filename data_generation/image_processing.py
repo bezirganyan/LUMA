@@ -199,17 +199,16 @@ def extract_deep_image_features(data, output_path='data/features.npy', model_wei
     from PIL import Image
 
     model = vgg11_bn(pretrained=True)
-    # model.classifier = model.classifier[:-1]
+    model.classifier[-1] = torch.nn.Sequential(
+        torch.nn.Linear(4096, 512),
+        torch.nn.ReLU(),
+        torch.nn.Linear(512, len(data['label'].unique()))
+    )
     model.eval()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if not os.path.exists(model_weight_path):
         finetune_model(data, model, model_weight_path)
     else:
-        model.classifier[-1] = torch.nn.Sequential(
-            torch.nn.Linear(4096, 512),
-            torch.nn.ReLU(),
-            torch.nn.Linear(512, len(data['label'].unique()))
-        )
         model.load_state_dict(torch.load(model_weight_path))
     model.to(device)
     features = []
