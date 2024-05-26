@@ -4,11 +4,11 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from torchaudio.transforms import MelSpectrogram
-from torchvision.transforms import Resize, ToTensor
+from torchvision.transforms import ToTensor
 from torchvision.transforms.v2 import Compose, Normalize
 
 from baselines.mc_models import AudioClassifier, ImageClassifier, MultimodalClassifier, TextClassifier
-from baselines.mcdmodel import MCDModel
+from baselines.model import MCDModel
 from data_generation.text_processing import extract_deep_text_features
 from dataset import MultiMUQDataset
 
@@ -48,7 +48,8 @@ train_text_path = 'data/text_data_train.tsv'
 image_transform = Compose([
     ToTensor(),
     # Resize((224, 224)),
-    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    Normalize(mean=(0.51, 0.49, 0.44),
+              std=(0.27, 0.26, 0.28))
 ])
 train_dataset = MultiMUQDataset(train_image_path, train_audio_path, train_audio_data_path, train_text_path,
                                 text_transform=Text2FeatureTransform('text_features_train.npy'),
@@ -87,12 +88,20 @@ ood_loader = torch.utils.data.DataLoader(ood_dataset, batch_size=batch_size, shu
 # Now we can use the loaders to train a model
 
 acc_dict = {}
-classifiers = [AudioClassifier(42), ImageClassifier(42), TextClassifier(42), MultimodalClassifier(42)]
+classes = 42
+mc_samples = 100
+mc_dropout = True
+dropout_p = 0.3
+classifiers = [ImageClassifier(classes, dropout=dropout_p, monte_carlo=mc_dropout),
+               AudioClassifier(classes, dropout=dropout_p, monte_carlo=mc_dropout),
+               TextClassifier(classes, dropout=dropout_p, monte_carlo=mc_dropout),
+               MultimodalClassifier(classes, dropout=dropout_p, monte_carlo=mc_dropout)]
 for classifiers in classifiers:
     model = MCDModel(classifiers)
     trainer = pl.Trainer(max_epochs=50,
                          gpus=1 if torch.cuda.is_available() else 0,
-                         callbacks=[pl.callbacks.EarlyStopping(monitor='val_loss')])
+                         callbacks=[pl.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode='min'),
+                                    pl.callbacks.ModelCheckpoint(monitor='val_loss', mode='min', save_last=True)])
     trainer.fit(model, train_loader, val_loader)
     trainer.test(model, test_loader)
     # trainer.test(model, ood_loader)

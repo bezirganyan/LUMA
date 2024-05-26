@@ -1,32 +1,29 @@
 import torch
 
-from baselines.mobilenet import MobileNet
 from baselines.utils import MCDropout
 
 
 class ImageClassifier(torch.nn.Module):
     def __init__(self, num_classes, dropout=0.3, monte_carlo=False):
         super(ImageClassifier, self).__init__()
-        # self.image_model = torch.nn.Sequential(
-        #     torch.nn.Conv2d(3, 32, 3),
-        #     torch.nn.ReLU(),
-        #     torch.nn.MaxPool2d(2),
-        #     MCDropout(dropout) if monte_carlo else torch.nn.Dropout(dropout),
-        #     torch.nn.Conv2d(32, 64, 3),
-        #     torch.nn.ReLU(),
-        #     torch.nn.MaxPool2d(2),
-        #     MCDropout(dropout) if monte_carlo else torch.nn.Dropout(dropout),
-        #     torch.nn.Flatten(),
-        #     torch.nn.Linear(64 * 6 * 6, num_classes),
-        # )
-
-        # self.image_model = ResNet_Cifar(BasicBlock, [3, 3, 3], num_classes, dropout, monte_carlo)
-        self.image_model = MobileNet(1, num_classes)
+        self.image_model = torch.nn.Sequential(
+            torch.nn.Conv2d(3, 32, 3),
+            torch.nn.ReLU(),
+            torch.nn.MaxPool2d(2),
+            MCDropout(dropout) if monte_carlo else torch.nn.Dropout(dropout),
+            torch.nn.Conv2d(32, 64, 3),
+            torch.nn.ReLU(),
+            torch.nn.MaxPool2d(2),
+            MCDropout(dropout) if monte_carlo else torch.nn.Dropout(dropout),
+            torch.nn.Flatten(),
+        )
+        self.classifier = torch.nn.Linear(64 * 6 * 6, num_classes)
+        self.sigma = torch.nn.Linear(64 * 6 * 6, num_classes)
 
     def forward(self, x):
         image, audio, text = x
         image = self.image_model(image)
-        return image
+        return self.classifier(image), self.sigma(image)
 
 
 class AudioClassifier(torch.nn.Module):
@@ -45,14 +42,15 @@ class AudioClassifier(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.MaxPool2d(2),
             MCDropout(dropout) if monte_carlo else torch.nn.Dropout(dropout),
-            torch.nn.Flatten(),
-            torch.nn.Linear(64 * 14 * 14, num_classes),
+            torch.nn.Flatten()
         )
+        self.classifier = torch.nn.Linear(64 * 6 * 6, num_classes)
+        self.sigma = torch.nn.Linear(64 * 6 * 6, num_classes)
 
     def forward(self, x):
         image, audio, text = x
         audio = self.audio_model(audio)
-        return audio
+        return self.classifier(audio), self.sigma(audio)
 
 
 class TextClassifier(torch.nn.Module):
@@ -65,13 +63,14 @@ class TextClassifier(torch.nn.Module):
             torch.nn.Linear(512, 256),
             torch.nn.ReLU(),
             MCDropout(dropout) if monte_carlo else torch.nn.Dropout(dropout),
-            torch.nn.Linear(256, num_classes),
         )
+        self.classifier = torch.nn.Linear(256, num_classes)
+        self.sigma = torch.nn.Linear(256, num_classes)
 
     def forward(self, x):
         image, audio, text = x
         text = self.text_model(text)
-        return text
+        return self.classifier(text), self.sigma(text)
 
 
 class MultimodalClassifier(torch.nn.Module):
@@ -83,7 +82,10 @@ class MultimodalClassifier(torch.nn.Module):
 
     def forward(self, x):
         image, audio, text = x
-        image = self.image_model(image)
-        audio = self.audio_model(audio)
-        text = self.text_model(text)
-        return (image + audio + text) / 3
+        image_logits, image_sigma = self.image_model(image)
+        audio_logits, audio_sigma = self.audio_model(audio)
+        text_logits, text_sigma = self.text_model(text)
+
+        logits = (image_logits + audio_logits + text_logits) / 3
+        sigma = (image_sigma + audio_sigma + text_sigma) / 3
+        return logits, sigma
