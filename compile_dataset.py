@@ -30,6 +30,9 @@ ID_class_labels = [class_label_mapping[i] for i in ID_classes]
 
 def generate_audio_modality(data_dir, audio_csv_path, audio_test_csv, audio_data_path, features_path,
                             diversity_cfg, sample_nosie_cfg, label_switch_prob):
+    if sample_nosie_cfg.get('add_noise_train', False):
+        if not os.path.exists(sample_nosie_cfg['output_path']):
+            os.makedirs(sample_nosie_cfg['output_path'])
     print("[*] Generating audio modality")
     data = pd.read_csv(audio_csv_path, index_col=0)
     data['class'] = data['label'].apply(lambda x: label_class_mapping[x])
