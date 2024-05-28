@@ -18,12 +18,14 @@ class ImageClassifier(torch.nn.Module):
             torch.nn.Flatten(),
         )
         self.classifier = torch.nn.Linear(64 * 6 * 6, num_classes)
-        self.sigma = torch.nn.Linear(64 * 6 * 6, num_classes)
+        self.monte_carlo = monte_carlo
+        if monte_carlo:
+            self.sigma = torch.nn.Linear(64 * 6 * 6, num_classes)
 
     def forward(self, x):
         image, audio, text = x
         image = self.image_model(image)
-        return self.classifier(image), self.sigma(image)
+        return (self.classifier(image), self.sigma(image)) if self.monte_carlo else self.classifier(image)
 
 
 class AudioClassifier(torch.nn.Module):
@@ -45,12 +47,14 @@ class AudioClassifier(torch.nn.Module):
             torch.nn.Flatten()
         )
         self.classifier = torch.nn.Linear(64 * 14 * 14, num_classes)
-        self.sigma = torch.nn.Linear(64 * 14 * 14, num_classes)
+        self.monte_carlo = monte_carlo
+        if monte_carlo:
+            self.sigma = torch.nn.Linear(64 * 14 * 14, num_classes)
 
     def forward(self, x):
         image, audio, text = x
         audio = self.audio_model(audio)
-        return self.classifier(audio), self.sigma(audio)
+        return (self.classifier(audio), self.sigma(audio)) if self.monte_carlo else self.classifier(audio)
 
 
 class TextClassifier(torch.nn.Module):
@@ -65,27 +69,44 @@ class TextClassifier(torch.nn.Module):
             MCDropout(dropout) if monte_carlo else torch.nn.Dropout(dropout),
         )
         self.classifier = torch.nn.Linear(256, num_classes)
-        self.sigma = torch.nn.Linear(256, num_classes)
+        self.monte_carlo = monte_carlo
+        if monte_carlo:
+            self.sigma = torch.nn.Linear(256, num_classes)
 
     def forward(self, x):
         image, audio, text = x
         text = self.text_model(text)
-        return self.classifier(text), self.sigma(text)
+        return (self.classifier(text), self.sigma(text)) if self.monte_carlo else self.classifier(text)
 
 
 class MultimodalClassifier(torch.nn.Module):
-    def __init__(self, num_classes, dropout=0.5, monte_carlo=False):
+    def __init__(self, num_classes, dropout=0.5, monte_carlo=False, dirichlet=False):
         super(MultimodalClassifier, self).__init__()
-        self.image_model = ImageClassifier(num_classes, dropout, monte_carlo).image_model
-        self.audio_model = AudioClassifier(num_classes, dropout, monte_carlo).audio_model
-        self.text_model = TextClassifier(num_classes, dropout, monte_carlo).text_model
+        self.image_model = ImageClassifier(num_classes, dropout, monte_carlo)
+        self.audio_model = AudioClassifier(num_classes, dropout, monte_carlo)
+        self.text_model = TextClassifier(num_classes, dropout, monte_carlo)
+        self.monte_carlo = monte_carlo
+        self.dirichlet = dirichlet
+        if dirichlet and monte_carlo:
+            raise ValueError("Dirichlet and Monte Carlo cannot be used together")
 
     def forward(self, x):
-        image, audio, text = x
-        image_logits, image_sigma = self.image_model(image)
-        audio_logits, audio_sigma = self.audio_model(audio)
-        text_logits, text_sigma = self.text_model(text)
+        image_outputs = self.image_model(x)
+        audio_outputs = self.audio_model(x)
+        text_outputs = self.text_model(x)
 
-        logits = (image_logits + audio_logits + text_logits) / 3
-        sigma = (image_sigma + audio_sigma + text_sigma) / 3
-        return logits, sigma
+        if self.monte_carlo:
+            image_logits, image_sigma = image_outputs
+            audio_logits, audio_sigma = audio_outputs
+            text_logits, text_sigma = text_outputs
+            logits = (image_logits + audio_logits + text_logits) / 3
+            sigma = (image_sigma + audio_sigma + text_sigma) / 3
+            return logits, sigma
+        elif self.dirichlet:
+            image_logits = torch.nn.functional.softplus(image_outputs)
+            audio_logits = torch.nn.functional.softplus(audio_outputs)
+            text_logits = torch.nn.functional.softplus(text_outputs)
+            logits = ((image_logits + audio_logits) / 2 + text_logits) / 2
+            return logits, (image_logits, audio_logits, text_logits)
+        logits = (image_outputs + audio_outputs + text_outputs) / 3
+        return logits

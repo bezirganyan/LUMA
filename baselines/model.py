@@ -6,10 +6,10 @@ from baselines.utils import aleatoric_loss
 
 
 class MCDModel(pl.LightningModule):
-    def __init__(self, model, num_classes=42, mc_samples=100):
+    def __init__(self, model, num_classes=42, mc_samples=100, dropout=0.3):
         super(MCDModel, self).__init__()
         self.mc_samples = mc_samples
-        self.model = model
+        self.model = model(num_classes=num_classes, dropout=dropout, monte_carlo=True if mc_samples > 1 else False)
         self.train_acc = Accuracy(task='multiclass', num_classes=num_classes)
         self.val_acc = Accuracy(task='multiclass', num_classes=num_classes)
         self.test_acc = Accuracy(task='multiclass', num_classes=num_classes)

@@ -7,6 +7,7 @@ from torchaudio.transforms import MelSpectrogram
 from torchvision.transforms import ToTensor
 from torchvision.transforms.v2 import Compose, Normalize
 
+from baselines.dirichlet import DirichletModel
 from baselines.mc_models import AudioClassifier, ImageClassifier, MultimodalClassifier, TextClassifier
 from baselines.model import MCDModel
 from data_generation.text_processing import extract_deep_text_features
@@ -90,14 +91,15 @@ ood_loader = torch.utils.data.DataLoader(ood_dataset, batch_size=batch_size, shu
 acc_dict = {}
 classes = 42
 mc_samples = 100
-mc_dropout = True
 dropout_p = 0.3
-classifiers = [ImageClassifier(classes, dropout=dropout_p, monte_carlo=mc_dropout),
-               AudioClassifier(classes, dropout=dropout_p, monte_carlo=mc_dropout),
-               TextClassifier(classes, dropout=dropout_p, monte_carlo=mc_dropout),
-               MultimodalClassifier(classes, dropout=dropout_p, monte_carlo=mc_dropout)]
-for classifiers in classifiers:
-    model = MCDModel(classifiers)
+classifiers = [ImageClassifier,
+               AudioClassifier,
+               TextClassifier,
+               MultimodalClassifier,
+]
+for classifier in classifiers:
+    # model = MCDModel(classifier, classes, mc_samples, dropout_p)
+    model = DirichletModel(MultimodalClassifier, num_classes=classes, dropout=dropout_p)
     trainer = pl.Trainer(max_epochs=50,
                          gpus=1 if torch.cuda.is_available() else 0,
                          callbacks=[pl.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode='min'),
