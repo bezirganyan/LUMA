@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 import torch
 from torchmetrics import Accuracy
 
-from baselines.utils import aleatoric_loss
+from baselines.utils import aleatoric_loss, compute_uncertainty
 
 
 class MCDModel(pl.LightningModule):
@@ -26,14 +26,6 @@ class MCDModel(pl.LightningModule):
         self.log('train_acc_step', acc, prog_bar=True)
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        entropy, loss, output, sigma, target = self.val_test_shared_step(batch)
-        self.log('val_loss', loss)
-        self.val_acc(output, target)
-        self.log('val_std', sigma.mean(-1).mean())
-        self.log('val_entropy', entropy)
-        return loss, sigma.mean(-1).mean(), entropy
-
     def val_test_shared_step(self, batch):
         image, audio, text, target = batch
         outputs = []
@@ -42,37 +34,43 @@ class MCDModel(pl.LightningModule):
             output, sigma = self((image, audio, text))
             outputs.append(output)
             sigmas.append(sigma)
-        output = torch.stack(outputs)
-        log_sigma = torch.stack(sigmas)
-        sigma = torch.exp(log_sigma)
-        log_sigma = torch.log(sigma.mean(dim=0))
-        output = output.mean(dim=0)
-        loss = aleatoric_loss(output, target, log_sigma, 100)
-        sigma = torch.exp(log_sigma)
-        probs = torch.softmax(output, dim=1)
-        entropy = -torch.sum(probs * torch.log(probs + 1e-6), dim=1).mean()
-        return entropy, loss, output, sigma, target
+        output = torch.stack(outputs, dim=1)
+        sigma = torch.stack(sigmas, dim=1)
+        sigma = sigma.mean(dim=1)
+        output_mu = output.mean(dim=1)
+        loss = aleatoric_loss(output_mu, target, sigma, 100)
+
+        entropy_ale, entropy_ep = compute_uncertainty(output_mu, sigma, torch.log(output.std(dim=1)))
+        return loss, output_mu, target, entropy_ale, entropy_ep
 
     def test_step(self, batch, batch_idx):
-        entropy, loss, output, sigma, target = self.val_test_shared_step(batch)
+        loss, output, target, entropy_ale, entropy_ep = self.val_test_shared_step(batch)
         self.log('test_loss', loss)
         self.test_acc(output, target)
-        self.log('test_std', sigma.mean(dim=-1).mean())
-        self.log('test_entropy', entropy)
-        return loss, sigma.mean(dim=-1).mean(), entropy
+        self.log('test_entropy_ale', entropy_ale)
+        self.log('test_entropy_ep', entropy_ep)
+        return loss, entropy_ale, entropy_ep
+
+    def validation_step(self, batch, batch_idx):
+        loss, output, target, entropy_ale, entropy_ep = self.val_test_shared_step(batch)
+        self.log('val_loss', loss)
+        self.val_acc(output, target)
+        self.log('val_entropy_ale', entropy_ale)
+        self.log('val_entropy_ep', entropy_ep)
+        return loss, entropy_ale, entropy_ep
 
     def training_epoch_end(self, outputs):
         self.log('train_acc', self.train_acc.compute(), prog_bar=True)
 
     def validation_epoch_end(self, outputs):
         self.log('val_acc', self.val_acc.compute(), prog_bar=True)
-        self.log('val_entropy', torch.stack([x[2] for x in outputs]).mean(), prog_bar=True)
-        self.log('val_sigma', torch.stack([x[1] for x in outputs]).mean(), prog_bar=True)
+        self.log('val_entropy_ale', torch.stack([x[1] for x in outputs]).mean(), prog_bar=True)
+        self.log('val_entropy_epi', torch.stack([x[2] for x in outputs]).mean(), prog_bar=True)
 
     def test_epoch_end(self, outputs):
         self.log('test_acc', self.test_acc.compute(), prog_bar=True)
-        self.log('test_entropy', torch.stack([x[2] for x in outputs]).mean())
-        self.log('test_simga', torch.stack([x[1] for x in outputs]).mean())
+        self.log('test_entropy_ale', torch.stack([x[1] for x in outputs]).mean(), prog_bar=True)
+        self.log('test_entropy_epi', torch.stack([x[2] for x in outputs]).mean(), prog_bar=True)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-2)

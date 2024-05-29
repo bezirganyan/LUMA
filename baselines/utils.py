@@ -1,6 +1,7 @@
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
+
 
 class MCDropout(torch.nn.Module):
     def __init__(self, p=0.5):
@@ -21,7 +22,8 @@ class AleatoricClassificationLoss(torch.nn.Module):
 
 
 def aleatoric_loss(logits, targets, log_std, num_samples=100):
-    std = torch.exp(log_std)
+    # std = torch.exp(log_std)
+    std = log_std
     mu_mc = logits.unsqueeze(-1).repeat(*[1] * len(logits.shape), num_samples)
     # hard coded the known shape of the data
     noise = torch.randn(*logits.shape, num_samples, device=logits.device) * std.unsqueeze(-1)
@@ -32,6 +34,9 @@ def aleatoric_loss(logits, targets, log_std, num_samples=100):
     # mean across mc samples
     mc_x = mc_x.mean(-1)
     # mean across every thing else
+    mc_x_mean = mc_x.mean()
+    # assert is not inf or nan
+    assert not torch.isfinite(mc_x_mean).sum() == 0, f"Loss is inf: {mc_x_mean}"
     return mc_x.mean()
 
 
@@ -119,3 +124,20 @@ class AvgTrustedLoss(nn.Module):
         loss_acc = loss_acc / (len(evidences) + 1)
         loss = loss_acc + self.gamma * get_dc_loss(evidences, evidence_a.device)
         return loss
+
+
+def sampling_softmax(logits, log_sigma, num_samples=100):
+    std = torch.exp(log_sigma)
+    mu_mc = logits.unsqueeze(-1).repeat(*[1] * len(logits.shape), num_samples)
+    # hard coded the known shape of the data
+    noise = torch.randn(*logits.shape, num_samples, device=logits.device) * std.unsqueeze(-1)
+    prd = mu_mc + noise
+    return torch.softmax(prd, dim=0).mean(-1)
+
+
+def compute_uncertainty(outputs, log_sigmas_ale, log_sigmas_ep, num_samples=100):
+    p_ale = sampling_softmax(outputs, log_sigmas_ale, num_samples)
+    entropy_ale = -torch.sum(p_ale * torch.log(p_ale + 1e-6), dim=-1)
+    p_ep = sampling_softmax(outputs, log_sigmas_ep, num_samples)
+    entropy_ep = -torch.sum(p_ep * torch.log(p_ep + 1e-6), dim=-1)
+    return entropy_ale.mean(-1), entropy_ep.mean(-1)

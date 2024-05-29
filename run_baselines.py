@@ -7,9 +7,10 @@ from torchaudio.transforms import MelSpectrogram
 from torchvision.transforms import ToTensor
 from torchvision.transforms.v2 import Compose, Normalize
 
+from baselines.de_model import DEModel
 from baselines.dirichlet import DirichletModel
-from baselines.mc_models import AudioClassifier, ImageClassifier, MultimodalClassifier, TextClassifier
-from baselines.model import MCDModel
+from baselines.classifiers import AudioClassifier, ImageClassifier, MultimodalClassifier, TextClassifier
+from baselines.mc_model import MCDModel
 from data_generation.text_processing import extract_deep_text_features
 from dataset import MultiMUQDataset
 
@@ -80,7 +81,7 @@ train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [int(0
                                                                            len(train_dataset) - int(
                                                                                0.8 * len(train_dataset))])
 
-batch_size = 256
+batch_size = 128
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
@@ -99,7 +100,8 @@ classifiers = [ImageClassifier,
 ]
 for classifier in classifiers:
     # model = MCDModel(classifier, classes, mc_samples, dropout_p)
-    model = DirichletModel(MultimodalClassifier, num_classes=classes, dropout=dropout_p)
+    # model = MCDModel(MultimodalClassifier, num_classes=classes, dropout=dropout_p)
+    model = DEModel(MultimodalClassifier, num_classes=classes, dropout=dropout_p)
     trainer = pl.Trainer(max_epochs=50,
                          gpus=1 if torch.cuda.is_available() else 0,
                          callbacks=[pl.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode='min'),
