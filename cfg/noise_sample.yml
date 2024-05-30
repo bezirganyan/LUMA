@@ -4,10 +4,10 @@ data:
 
 audio:
   audio_csv_path: data/audio/datalist.csv
-  audio_train_csv_path: data/audio_noise/datalist_train.csv
-  audio_test_csv_path: data/audio_noise/datalist_test.csv
+  audio_train_csv_path: data/noisy_audio/datalist_train.csv
+  audio_test_csv_path: data/noisy_audio/datalist_test.csv
   audio_data_path: data/audio
-  audio_ood_csv_path: data/audio_noise/datalist_ood.csv
+  audio_ood_csv_path: data/noisy_audio/datalist_ood.csv
   audio_features_path: data/audio_features.npy
   diversity:
     compactness: 0
