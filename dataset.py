@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 class MultiMUQDataset(Dataset):
     def __init__(self, image_path, audio_path, audio_data_path, text_path, image_transform=None, audio_transform=None,
                  text_transform=None,
-                 target_transform=None):
+                 target_transform=None, ood=False):
         self.image_path = image_path
         self.audio_path = audio_path
         self.audio_data_path = audio_data_path
@@ -17,6 +17,7 @@ class MultiMUQDataset(Dataset):
         self.audio_transform = audio_transform
         self.text_transform = text_transform
         self.target_transform = target_transform
+        self.ood = ood
         self._load_data()
 
         self.label_mapping = {'man': 0, 'boy': 1, 'house': 2, 'woman': 3, 'girl': 4, 'table': 5, 'road': 6, 'horse': 7,
@@ -40,7 +41,7 @@ class MultiMUQDataset(Dataset):
         audio_path = self.audio_data.loc[:, 'path'].iloc[index]
         audio, sr = torchaudio.load(os.path.join(self.audio_data_path, audio_path))
         text = self.text_data.loc[:, 'text'].iloc[index]
-        target = self.label_mapping[self.targets[index]]
+        target = self.label_mapping[self.targets[index]] if not self.ood else 0
 
         if self.image_transform is not None:
             image = self.image_transform(image)
