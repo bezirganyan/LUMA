@@ -60,8 +60,8 @@ def generate_audio_modality(data_dir, audio_csv_path, audio_test_csv, audio_data
     ood_data = data[~data['label'].isin(ID_class_labels)]
     if sample_nosie_cfg.pop('add_noise_test', False):
         print(f'[*] Adding noise to test and OOD data')
-        test_data = add_noise_to_audio(test_data, data_dir, audio_data_path, 'noisy_audio', **sample_nosie_cfg)
-        ood_data = add_noise_to_audio(ood_data, data_dir, audio_data_path, 'noisy_audio', **sample_nosie_cfg)
+        test_data = add_noise_to_audio(test_data, data_dir, audio_data_path, **sample_nosie_cfg)
+        ood_data = add_noise_to_audio(ood_data, data_dir, audio_data_path, **sample_nosie_cfg)
         print('[+] Noise added to test and OOD data successfully!')
     if label_switch_prob > 0:
         print(f'[*] Switching labels of train and test data')
