@@ -140,4 +140,4 @@ def compute_uncertainty(outputs, log_sigmas_ale, log_sigmas_ep, num_samples=100)
     entropy_ale = -torch.sum(p_ale * torch.log(p_ale + 1e-6), dim=-1)
     p_ep = sampling_softmax(outputs, log_sigmas_ep, num_samples)
     entropy_ep = -torch.sum(p_ep * torch.log(p_ep + 1e-6), dim=-1)
-    return entropy_ale.mean(-1), entropy_ep.mean(-1)
+    return entropy_ale, entropy_ep

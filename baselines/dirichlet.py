@@ -13,7 +13,9 @@ class DirichletModel(pl.LightningModule):
         self.train_acc = Accuracy(task='multiclass', num_classes=num_classes)
         self.val_acc = Accuracy(task='multiclass', num_classes=num_classes)
         self.test_acc = Accuracy(task='multiclass', num_classes=num_classes)
-        self.loss = AvgTrustedLoss(num_views=3)
+        self.criterion = AvgTrustedLoss(num_views=3)
+        self.aleatoric_uncertainties = None
+        self.epistemic_uncertainties = None
 
     def forward(self, inputs):
         return self.model(inputs)
@@ -29,7 +31,7 @@ class DirichletModel(pl.LightningModule):
         image, audio, text, target = batch
         output_a, output = self((image, audio, text))
         output = torch.stack(output)
-        loss = self.loss(output, target, output_a)
+        loss = self.criterion(output, target, output_a)
         return loss, output_a, target
 
     def validation_step(self, batch, batch_idx):
@@ -54,6 +56,7 @@ class DirichletModel(pl.LightningModule):
 
     def training_epoch_end(self, outputs):
         self.log('train_acc', self.train_acc.compute(), prog_bar=True)
+        self.criterion.annealing_step += 1
 
     def validation_epoch_end(self, outputs):
         self.log('val_acc', self.val_acc.compute(), prog_bar=True)
@@ -63,8 +66,10 @@ class DirichletModel(pl.LightningModule):
 
     def test_epoch_end(self, outputs):
         self.log('test_acc', self.test_acc.compute(), prog_bar=True)
-        self.log('test_entropy', torch.cat([x[3] for x in outputs]).mean())
-        self.log('test_sigma', torch.cat([x[4] for x in outputs]).mean())
+        self.log('test_entropy_epi', torch.cat([x[3] for x in outputs]).mean())
+        self.log('test_ale', torch.cat([x[4] for x in outputs]).mean())
+        self.aleatoric_uncertainties = torch.cat([x[4] for x in outputs]).detach().cpu().numpy()
+        self.epistemic_uncertainties = torch.cat([x[3] for x in outputs]).detach().cpu().numpy()
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-2)

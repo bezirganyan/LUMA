@@ -13,6 +13,8 @@ class MCDModel(pl.LightningModule):
         self.train_acc = Accuracy(task='multiclass', num_classes=num_classes)
         self.val_acc = Accuracy(task='multiclass', num_classes=num_classes)
         self.test_acc = Accuracy(task='multiclass', num_classes=num_classes)
+        self.aleatoric_uncertainties = None
+        self.epistemic_uncertainties = None
 
     def forward(self, inputs):
         return self.model(inputs)
@@ -47,16 +49,12 @@ class MCDModel(pl.LightningModule):
         loss, output, target, entropy_ale, entropy_ep = self.val_test_shared_step(batch)
         self.log('test_loss', loss)
         self.test_acc(output, target)
-        self.log('test_entropy_ale', entropy_ale)
-        self.log('test_entropy_ep', entropy_ep)
         return loss, entropy_ale, entropy_ep
 
     def validation_step(self, batch, batch_idx):
         loss, output, target, entropy_ale, entropy_ep = self.val_test_shared_step(batch)
         self.log('val_loss', loss)
         self.val_acc(output, target)
-        self.log('val_entropy_ale', entropy_ale)
-        self.log('val_entropy_ep', entropy_ep)
         return loss, entropy_ale, entropy_ep
 
     def training_epoch_end(self, outputs):
@@ -64,13 +62,15 @@ class MCDModel(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         self.log('val_acc', self.val_acc.compute(), prog_bar=True)
-        self.log('val_entropy_ale', torch.stack([x[1] for x in outputs]).mean(), prog_bar=True)
-        self.log('val_entropy_epi', torch.stack([x[2] for x in outputs]).mean(), prog_bar=True)
+        self.log('val_entropy_ale', torch.cat([x[1] for x in outputs], dim=0).mean(), prog_bar=True)
+        self.log('val_entropy_epi', torch.cat([x[2] for x in outputs], dim=0).mean(), prog_bar=True)
 
     def test_epoch_end(self, outputs):
         self.log('test_acc', self.test_acc.compute(), prog_bar=True)
-        self.log('test_entropy_ale', torch.stack([x[1] for x in outputs]).mean(), prog_bar=True)
-        self.log('test_entropy_epi', torch.stack([x[2] for x in outputs]).mean(), prog_bar=True)
+        self.log('test_ale', torch.cat([x[1] for x in outputs], dim=0).mean(), prog_bar=True)
+        self.log('test_entropy_epi', torch.cat([x[2] for x in outputs], dim=0).mean(), prog_bar=True)
+        self.aleatoric_uncertainties = torch.cat([x[1] for x in outputs], dim=0).detach().cpu().numpy()
+        self.epistemic_uncertainties = torch.cat([x[2] for x in outputs], dim=0).detach().cpu().numpy()
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-2)

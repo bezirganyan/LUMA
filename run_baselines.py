@@ -3,13 +3,14 @@ import os
 import numpy as np
 import pytorch_lightning as pl
 import torch
+from sklearn.metrics import roc_auc_score
 from torchaudio.transforms import MelSpectrogram
 from torchvision.transforms import ToTensor
 from torchvision.transforms.v2 import Compose, Normalize
 
+from baselines.classifiers import AudioClassifier, ImageClassifier, MultimodalClassifier, TextClassifier
 from baselines.de_model import DEModel
 from baselines.dirichlet import DirichletModel
-from baselines.classifiers import AudioClassifier, ImageClassifier, MultimodalClassifier, TextClassifier
 from baselines.mc_model import MCDModel
 from data_generation.text_processing import extract_deep_text_features
 from dataset import MultiMUQDataset
@@ -76,7 +77,7 @@ ood_text_path = 'data/text_data_ood.tsv'
 ood_dataset = MultiMUQDataset(ood_image_path, ood_audio_path, ood_audio_data_path, ood_text_path,
                               text_transform=Text2FeatureTransform('text_features_ood.npy'),
                               audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
-                              image_transform=image_transform)
+                              image_transform=image_transform, ood=True)
 train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [int(0.8 * len(train_dataset)),
                                                                            len(train_dataset) - int(
                                                                                0.8 * len(train_dataset))])
@@ -93,22 +94,40 @@ acc_dict = {}
 classes = 42
 mc_samples = 100
 dropout_p = 0.3
-classifiers = [ImageClassifier,
-               AudioClassifier,
-               TextClassifier,
-               MultimodalClassifier,
-]
-for classifier in classifiers:
-    # model = MCDModel(classifier, classes, mc_samples, dropout_p)
-    # model = MCDModel(MultimodalClassifier, num_classes=classes, dropout=dropout_p)
-    model = DEModel(MultimodalClassifier, num_classes=classes, dropout=dropout_p)
+
+mc_models = [MCDModel(c, classes, mc_samples, dropout_p) for c in [ImageClassifier, AudioClassifier, TextClassifier,
+                                                                     MultimodalClassifier]]
+de_models = [DEModel(c, classes, mc_samples, dropout_p) for c in [ImageClassifier, AudioClassifier, TextClassifier,
+                                                                    MultimodalClassifier]]
+dir_models = [DirichletModel(MultimodalClassifier, classes, dropout=dropout_p)]
+models = mc_models + de_models + dir_models
+for classifier in models:
+    model = classifier
+    model_name = classifier.__class__.__name__ + '_' + classifier.model.__class__.__name__
     trainer = pl.Trainer(max_epochs=50,
                          gpus=1 if torch.cuda.is_available() else 0,
                          callbacks=[pl.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode='min'),
                                     pl.callbacks.ModelCheckpoint(monitor='val_loss', mode='min', save_last=True)])
     trainer.fit(model, train_loader, val_loader)
+    print('Testing model')
     trainer.test(model, test_loader)
-    # trainer.test(model, ood_loader)
-    acc_dict[classifiers.__class__.__name__] = trainer.callback_metrics["test_acc"]
+    acc_dict[model_name] = trainer.callback_metrics["test_acc"]
+    acc_dict[model_name + '_ale'] = trainer.callback_metrics["test_ale"]
+    acc_dict[model_name + '_entropy_ep'] = trainer.callback_metrics["test_entropy_epi"]
+    aleatoric_uncertainties = model.aleatoric_uncertainties
+    epistemic_uncertainties = model.epistemic_uncertainties
+    print('Testing OOD')
+    trainer.test(model, ood_loader)
+    acc_dict[model_name + '_ood_ale'] = trainer.callback_metrics["test_ale"]
+    acc_dict[model_name + '_ood'] = trainer.callback_metrics["test_acc"]
+    acc_dict[model_name + '_ood_entropy_ep'] = trainer.callback_metrics["test_entropy_epi"]
+    aleatoric_uncertainties_ood = model.aleatoric_uncertainties
+    epistemic_uncertainties_ood = model.epistemic_uncertainties
+
+    auc_score = roc_auc_score(
+        np.concatenate([np.zeros(len(epistemic_uncertainties)), np.ones(len(epistemic_uncertainties_ood))]),
+        np.concatenate([epistemic_uncertainties, epistemic_uncertainties_ood]))
+
+    acc_dict[model_name + '_ood_auc'] = auc_score
 for key, value in acc_dict.items():
     print(f'{key}: {value}')
