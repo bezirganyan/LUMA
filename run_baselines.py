@@ -96,9 +96,9 @@ mc_samples = 100
 dropout_p = 0.3
 
 mc_models = [MCDModel(c, classes, mc_samples, dropout_p) for c in [ImageClassifier, AudioClassifier, TextClassifier,
-                                                                     MultimodalClassifier]]
+                                                                   MultimodalClassifier]]
 de_models = [DEModel(c, classes, mc_samples, dropout_p) for c in [ImageClassifier, AudioClassifier, TextClassifier,
-                                                                    MultimodalClassifier]]
+                                                                  MultimodalClassifier]]
 dir_models = [DirichletModel(MultimodalClassifier, classes, dropout=dropout_p)]
 models = mc_models + de_models + dir_models
 for classifier in models:
