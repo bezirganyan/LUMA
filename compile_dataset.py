@@ -216,9 +216,9 @@ def align_data(audio, text, image):
     text_chunks = []
     image_chunks = []
     for label in ID_class_labels:
-        a = audio.loc[audio['label'] == label].sample(frac=1).reset_index(drop=True)
-        t = text.loc[text['label'] == label].sample(frac=1).reset_index(drop=True)
-        i = image.loc[image['label'] == label].sample(frac=1).reset_index(drop=True)
+        a = audio.loc[audio['label'] == label].sample(frac=1)
+        t = text.loc[text['label'] == label].sample(frac=1)
+        i = image.loc[image['label'] == label].sample(frac=1)
         audio_chunks.append(a)
         text_chunks.append(t)
         image_chunks.append(i)
