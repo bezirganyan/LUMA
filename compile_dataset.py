@@ -43,13 +43,15 @@ def generate_audio_modality(data_dir, audio_csv_path, audio_test_csv, audio_data
         print('[+] Features saved successfully!')
     if os.path.exists(audio_test_csv):
         print(f'[+] Test data found at {audio_test_csv}')
-        test_data = pd.read_csv(audio_test_csv)
+        test_data = pd.read_csv(audio_test_csv, index_col=0)
+        train_data = train_data[~train_data.index.isin(test_data.index)]
     else:
         print(f'[-] Test data not found at {audio_test_csv}')
         print(f'[*] Generating test data from {audio_csv_path}')
         train_data, test_data = generate_test_split(train_data, test_count_per_label=100, features_path=features_path)
         test_data.to_csv(audio_test_csv)
         print('[+] Test data generated successfully!')
+    assert set(train_data['path'].values).intersection(test_data['path'].values) == set()
     print(f'[*] Sampling audio data from {audio_csv_path}')
     train_data = sample_audio(train_data, features_path, **diversity_cfg)
     print('[+] Audio data sampled successfully!')
@@ -219,9 +221,9 @@ def align_data(audio, text, image):
         audio_chunks.append(a)
         text_chunks.append(t)
         image_chunks.append(i)
-    audio = pd.concat(audio_chunks, axis=0).reset_index(drop=True)
-    text = pd.concat(text_chunks, axis=0).reset_index(drop=True)
-    image = pd.concat(image_chunks, axis=0).reset_index(drop=True)
+    audio = pd.concat(audio_chunks, axis=0)
+    text = pd.concat(text_chunks, axis=0)
+    image = pd.concat(image_chunks, axis=0)
     return audio, text, image
 
 
