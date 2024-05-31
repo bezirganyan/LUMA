@@ -91,6 +91,7 @@ dependencies:
   - xz=5.4.6=h5eee18b_1
   - zlib=1.2.13=hd590300_5
   - zstd=1.5.5=hc292b87_2
+  - imagemagick=7.1.1_32=pl5321h0df52c9_0
   - pip:
       - accelerate==0.30.1
       - certifi==2024.2.2
