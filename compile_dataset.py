@@ -142,7 +142,9 @@ def generate_image_modality(image_data_path, image_test_path, features_path, div
     print(f'[*] Sampling image data from {image_data_path}')
     if diversity_cfg['compactness'] == 0:
         train_data = train_data[train_data['source'] != 'synthetic100']
+    assert train_data['label'].value_counts().min() >= 500
     train_data = sample_text(train_data, features_path, **diversity_cfg, n_samples_per_class=500)
+    assert test_data['label'].value_counts().min() >= 100
     test_data = sample_text(test_data, features_path, **diversity_cfg, n_samples_per_class=100)
     print('[+] Image data sampled successfully!')
     if sample_nosie_cfg.pop('add_noise_train', False):
