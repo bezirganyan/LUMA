@@ -1,4 +1,4 @@
-name: data_env
+name: luma_env
 channels:
   - conda-forge
   - defaults
