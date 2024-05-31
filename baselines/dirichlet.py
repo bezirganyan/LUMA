@@ -9,6 +9,7 @@ from baselines.utils import AvgTrustedLoss
 class DirichletModel(pl.LightningModule):
     def __init__(self, model, num_classes=42, dropout=0.):
         super(DirichletModel, self).__init__()
+        self.num_classes = num_classes
         self.model = model(num_classes=num_classes, monte_carlo=False, dropout=dropout, dirichlet=True)
         self.train_acc = Accuracy(task='multiclass', num_classes=num_classes)
         self.val_acc = Accuracy(task='multiclass', num_classes=num_classes)
@@ -39,7 +40,7 @@ class DirichletModel(pl.LightningModule):
         self.val_acc(output, target)
         alphas = output + 1
         probs = alphas / alphas.sum(dim=-1, keepdim=True)
-        entropy = -torch.sum(probs * torch.log(probs + 1e-6), dim=-1)
+        entropy = self.num_classes / alphas.sum(dim=-1)
         alpha_0 = alphas.sum(dim=-1, keepdim=True)
         aleatoric_uncertainty = -torch.sum(probs * (torch.digamma(alphas + 1) - torch.digamma(alpha_0 + 1)), dim=-1)
         return loss, output, target, entropy, aleatoric_uncertainty
@@ -49,7 +50,7 @@ class DirichletModel(pl.LightningModule):
         self.test_acc(output, target)
         alphas = output + 1
         probs = alphas / alphas.sum(dim=-1, keepdim=True)
-        entropy = -torch.sum(probs * torch.log(probs + 1e-6), dim=-1)
+        entropy = self.num_classes / alphas.sum(dim=-1)
         alpha_0 = alphas.sum(dim=-1, keepdim=True)
         aleatoric_uncertainty = -torch.sum(probs * (torch.digamma(alphas + 1) - torch.digamma(alpha_0 + 1)), dim=-1)
         return loss, output, target, entropy, aleatoric_uncertainty
