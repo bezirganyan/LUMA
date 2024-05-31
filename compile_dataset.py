@@ -87,8 +87,9 @@ def generate_text_modality(text_tsv_path, text_test_path, features_path, diversi
 
     if os.path.exists(text_test_path):
         print(f'[+] Test data found at {text_test_path}')
-        test_data = pd.read_csv(text_test_path, sep='\t')
+        test_data = pd.read_csv(text_test_path, sep='\t', index_col=0)
         print(f'[*] Sampling text data from {text_tsv_path}')
+        train_data = train_data[~train_data.index.isin(test_data.index)]
         train_data = sample_text(train_data, features_path, **diversity_cfg, n_samples_per_class=500)
         print('[+] Text data sampled successfully!')
     else:
