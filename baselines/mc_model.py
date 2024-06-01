@@ -53,7 +53,6 @@ class MCDModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         loss, output, target, entropy_ale, entropy_ep = self.val_test_shared_step(batch)
-        self.log('val_loss', loss)
         self.val_acc(output, target)
         return loss, entropy_ale, entropy_ep
 
@@ -62,6 +61,7 @@ class MCDModel(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         self.log('val_acc', self.val_acc.compute(), prog_bar=True)
+        self.log('val_loss', torch.stack([x[0] for x in outputs], dim=0).mean(), prog_bar=True)
         self.log('val_entropy_ale', torch.cat([x[1] for x in outputs], dim=0).mean(), prog_bar=True)
         self.log('val_entropy_epi', torch.cat([x[2] for x in outputs], dim=0).mean(), prog_bar=True)
 
