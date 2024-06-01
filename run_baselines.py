@@ -83,10 +83,10 @@ train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [int(0
                                                                                0.8 * len(train_dataset))])
 
 batch_size = 128
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-ood_loader = torch.utils.data.DataLoader(ood_dataset, batch_size=batch_size, shuffle=False)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
+ood_loader = torch.utils.data.DataLoader(ood_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
 
 # Now we can use the loaders to train a model
 
@@ -104,7 +104,10 @@ dir_models = [DirichletModel(MultimodalClassifier, classes, dropout=dropout_p)]
 models = mc_models + de_models + dir_models
 for classifier in models:
     model = classifier
-    model_name = classifier.__class__.__name__ + '_' + classifier.model.__class__.__name__
+    try:
+        model_name = classifier.__class__.__name__ + '_' + classifier.model.__class__.__name__
+    except AttributeError:
+        model_name = classifier.__class__.__name__ + '_' + classifier.models[0].__class__.__name__
     trainer = pl.Trainer(max_epochs=50,
                          gpus=1 if torch.cuda.is_available() else 0,
                          callbacks=[pl.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode='min'),
