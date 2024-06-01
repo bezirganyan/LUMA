@@ -22,6 +22,7 @@ if not os.path.exists('text_features_test.npy'):
 if not os.path.exists('text_features_ood.npy'):
     extract_deep_text_features('data/text_data_ood.tsv', output_path='text_features_ood.npy')
 
+pl.seed_everything(42)
 
 class Text2FeatureTransform():
     def __init__(self, features_path):
@@ -44,7 +45,7 @@ class PadCutToSizeAudioTransform():
         return audio
 
 
-train_image_path = 'data/image_data_train.pickle'
+train_image_path = '../LUMA/data/image_data_train.pickle'
 train_audio_path = 'data/audio/datalist_train.csv'
 train_audio_data_path = 'data/audio'
 train_text_path = 'data/text_data_train.tsv'
@@ -59,7 +60,7 @@ train_dataset = MultiMUQDataset(train_image_path, train_audio_path, train_audio_
                                 audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
                                 image_transform=image_transform)
 
-test_image_path = 'data/image_data_test.pickle'
+test_image_path = '../LUMA/data/image_data_test.pickle'
 test_audio_path = 'data/audio/datalist_test.csv'
 test_audio_data_path = 'data/audio'
 test_text_path = 'data/text_data_test.tsv'
@@ -69,7 +70,7 @@ test_dataset = MultiMUQDataset(test_image_path, test_audio_path, test_audio_data
                                audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
                                image_transform=image_transform)
 
-ood_image_path = 'data/image_data_ood.pickle'
+ood_image_path = '../LUMA/data/image_data_ood.pickle'
 ood_audio_path = 'data/audio/datalist_ood.csv'
 ood_audio_data_path = 'data/audio'
 ood_text_path = 'data/text_data_ood.tsv'
