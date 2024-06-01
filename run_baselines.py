@@ -94,10 +94,11 @@ acc_dict = {}
 classes = 42
 mc_samples = 100
 dropout_p = 0.3
+n_ensemble = 10
 
 mc_models = [MCDModel(c, classes, mc_samples, dropout_p) for c in [ImageClassifier, AudioClassifier, TextClassifier,
                                                                    MultimodalClassifier]]
-de_models = [DEModel(c, classes, mc_samples, dropout_p) for c in [ImageClassifier, AudioClassifier, TextClassifier,
+de_models = [DEModel(c, classes, n_ensemble, dropout_p) for c in [ImageClassifier, AudioClassifier, TextClassifier,
                                                                   MultimodalClassifier]]
 dir_models = [DirichletModel(MultimodalClassifier, classes, dropout=dropout_p)]
 models = mc_models + de_models + dir_models
