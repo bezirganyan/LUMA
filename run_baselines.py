@@ -1,6 +1,8 @@
+import argparse
 import os
 
 import numpy as np
+import pandas as pd
 import pytorch_lightning as pl
 import torch
 from sklearn.metrics import roc_auc_score
@@ -24,6 +26,7 @@ if not os.path.exists('text_features_ood.npy'):
 
 pl.seed_everything(42)
 
+
 class Text2FeatureTransform():
     def __init__(self, features_path):
         with open(features_path, 'rb') as f:
@@ -45,10 +48,37 @@ class PadCutToSizeAudioTransform():
         return audio
 
 
-train_image_path = 'data/image_data_train.pickle'
-train_audio_path = 'data/audio/datalist_train.csv'
-train_audio_data_path = 'data/audio'
-train_text_path = 'data/text_data_train.tsv'
+def parse_args() -> tuple[argparse.Namespace, list[str]]:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n', '--noise_type', type=str, default='')
+    args, unknown = parser.parse_known_args()
+    return args, unknown
+
+
+args, unknown = parse_args()
+if args.noise_type not in ['', 'diversity', 'label', 'sample']:
+    raise ValueError('Invalid noise type')
+
+train_audio_data_path = test_audio_data_path = ood_audio_data_path = 'data/audio' if args.noise_type != 'sample' else 'data/noisy_audio'
+suffix = ''
+if args.noise_type == 'diversity':
+    suffix = '_diversity'
+elif args.noise_type == 'label':
+    suffix = '_noise_label'
+elif args.noise_type == 'sample':
+    suffix = '_noise'
+
+train_audio_path = f'{train_audio_data_path}/datalist_train{suffix if args.noise_type != "sample" else ""}.csv'
+test_audio_path = f'{test_audio_data_path}/datalist_test{suffix if args.noise_type not in ("sample", "diversity") else ""}.csv'
+ood_audio_path = f'{ood_audio_data_path}/datalist_ood{suffix if args.noise_type != "sample" else ""}.csv'
+train_image_path = f'data/image_data_train{suffix}.pickle'
+train_text_path = f'data/text_data_train{suffix}.tsv'
+test_image_path = f'data/image_data_test{suffix if args.noise_type != "diversity" else ""}.pickle'
+test_text_path = f'data/text_data_test{suffix if args.noise_type != "diversity" else ""}.tsv'
+ood_image_path = f'data/image_data_ood{suffix}.pickle'
+ood_text_path = f'data/text_data_ood{suffix}.tsv'
+
+print(f'Loading data from {train_audio_path}, {test_audio_path}, {ood_audio_path}, {train_image_path}, {train_text_path}, {test_image_path}, {test_text_path}, {ood_image_path}, {ood_text_path}')
 image_transform = Compose([
     ToTensor(),
     # Resize((224, 224)),
@@ -60,20 +90,10 @@ train_dataset = MultiMUQDataset(train_image_path, train_audio_path, train_audio_
                                 audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
                                 image_transform=image_transform)
 
-test_image_path = 'data/image_data_test.pickle'
-test_audio_path = 'data/audio/datalist_test.csv'
-test_audio_data_path = 'data/audio'
-test_text_path = 'data/text_data_test.tsv'
-
 test_dataset = MultiMUQDataset(test_image_path, test_audio_path, test_audio_data_path, test_text_path,
                                text_transform=Text2FeatureTransform('text_features_test.npy'),
                                audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
                                image_transform=image_transform)
-
-ood_image_path = 'data/image_data_ood.pickle'
-ood_audio_path = 'data/audio/datalist_ood.csv'
-ood_audio_data_path = 'data/audio'
-ood_text_path = 'data/text_data_ood.tsv'
 
 ood_dataset = MultiMUQDataset(ood_image_path, ood_audio_path, ood_audio_data_path, ood_text_path,
                               text_transform=Text2FeatureTransform('text_features_ood.npy'),
@@ -103,6 +123,8 @@ de_models = [DEModel(c, classes, n_ensemble, dropout_p) for c in [ImageClassifie
                                                                   MultimodalClassifier]]
 dir_models = [DirichletModel(MultimodalClassifier, classes, dropout=dropout_p)]
 models = mc_models + de_models + dir_models
+
+uncertainty_values = {}
 for classifier in models:
     model = classifier
     try:
@@ -133,6 +155,11 @@ for classifier in models:
         np.concatenate([np.zeros(len(epistemic_uncertainties)), np.ones(len(epistemic_uncertainties_ood))]),
         np.concatenate([epistemic_uncertainties, epistemic_uncertainties_ood]))
 
+    uncertainty_values[f'{model_name}_epistemic'] = epistemic_uncertainties
+    uncertainty_values[f'{model_name}_aleatoric'] = aleatoric_uncertainties
     acc_dict[model_name + '_ood_auc'] = auc_score
 for key, value in acc_dict.items():
     print(f'{key}: {value}')
+
+uncertainty_df = pd.DataFrame(uncertainty_values)
+uncertainty_df.to_csv(f'uncertainty_values{args.noise_type}.csv')
