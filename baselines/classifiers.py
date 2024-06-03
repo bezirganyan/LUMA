@@ -25,7 +25,7 @@ class ImageClassifier(torch.nn.Module):
 
     def forward(self, x):
         image, audio, text = x
-        image = self.image_model(image)
+        image = self.image_model(image.float())
         if self.monte_carlo or self.aleatoric:
             return self.classifier(image), torch.nn.functional.softplus(self.sigma(image))
         return self.classifier(image)
