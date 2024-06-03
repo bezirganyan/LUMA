@@ -17,12 +17,9 @@ from baselines.mc_model import MCDModel
 from data_generation.text_processing import extract_deep_text_features
 from dataset import MultiMUQDataset
 
-if not os.path.exists('text_features_train.npy'):
-    extract_deep_text_features('data/text_data_train.tsv', output_path='text_features_train.npy')
-if not os.path.exists('text_features_test.npy'):
-    extract_deep_text_features('data/text_data_test.tsv', output_path='text_features_test.npy')
-if not os.path.exists('text_features_ood.npy'):
-    extract_deep_text_features('data/text_data_ood.tsv', output_path='text_features_ood.npy')
+extract_deep_text_features('data/text_data_train.tsv', output_path='text_features_train.npy')
+extract_deep_text_features('data/text_data_test.tsv', output_path='text_features_test.npy')
+extract_deep_text_features('data/text_data_ood.tsv', output_path='text_features_ood.npy')
 
 pl.seed_everything(42)
 
@@ -131,7 +128,7 @@ for classifier in models:
         model_name = classifier.__class__.__name__ + '_' + classifier.model.__class__.__name__
     except AttributeError:
         model_name = classifier.__class__.__name__ + '_' + classifier.models[0].__class__.__name__
-    trainer = pl.Trainer(max_epochs=50,
+    trainer = pl.Trainer(max_epochs=300,
                          gpus=1 if torch.cuda.is_available() else 0,
                          callbacks=[pl.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode='min'),
                                     pl.callbacks.ModelCheckpoint(monitor='val_loss', mode='min', save_last=True)])
