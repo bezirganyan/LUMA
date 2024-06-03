@@ -17,10 +17,6 @@ from baselines.mc_model import MCDModel
 from data_generation.text_processing import extract_deep_text_features
 from dataset import MultiMUQDataset
 
-extract_deep_text_features('data/text_data_train.tsv', output_path='text_features_train.npy')
-extract_deep_text_features('data/text_data_test.tsv', output_path='text_features_test.npy')
-extract_deep_text_features('data/text_data_ood.tsv', output_path='text_features_ood.npy')
-
 pl.seed_everything(42)
 
 
@@ -56,6 +52,7 @@ args, unknown = parse_args()
 if args.noise_type not in ['', 'diversity', 'label', 'sample']:
     raise ValueError('Invalid noise type')
 
+
 train_audio_data_path = test_audio_data_path = ood_audio_data_path = 'data/audio' if args.noise_type != 'sample' else 'data/noisy_audio'
 suffix = ''
 if args.noise_type == 'diversity':
@@ -75,6 +72,11 @@ test_text_path = f'data/text_data_test{suffix if args.noise_type != "diversity" 
 ood_image_path = f'data/image_data_ood{suffix}.pickle'
 ood_text_path = f'data/text_data_ood{suffix}.tsv'
 
+
+extract_deep_text_features(train_text_path, output_path=f'text_features_train_{args.noise_type}.npy')
+extract_deep_text_features(test_text_path, output_path=f'text_features_test_{args.noise_type}.npy')
+extract_deep_text_features(ood_text_path, output_path=f'text_features_ood_{args.noise_type}.npy')
+
 print(f'Loading data from {train_audio_path}, {test_audio_path}, {ood_audio_path}, {train_image_path}, {train_text_path}, {test_image_path}, {test_text_path}, {ood_image_path}, {ood_text_path}')
 image_transform = Compose([
     ToTensor(),
@@ -83,17 +85,17 @@ image_transform = Compose([
               std=(0.27, 0.26, 0.28))
 ])
 train_dataset = MultiMUQDataset(train_image_path, train_audio_path, train_audio_data_path, train_text_path,
-                                text_transform=Text2FeatureTransform('text_features_train.npy'),
+                                text_transform=Text2FeatureTransform(f'text_features_train_{args.noise_type}.npy'),
                                 audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
                                 image_transform=image_transform)
 
 test_dataset = MultiMUQDataset(test_image_path, test_audio_path, test_audio_data_path, test_text_path,
-                               text_transform=Text2FeatureTransform('text_features_test.npy'),
+                               text_transform=Text2FeatureTransform(f'text_features_test_{args.noise_type}.npy'),
                                audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
                                image_transform=image_transform)
 
 ood_dataset = MultiMUQDataset(ood_image_path, ood_audio_path, ood_audio_data_path, ood_text_path,
-                              text_transform=Text2FeatureTransform('text_features_ood.npy'),
+                              text_transform=Text2FeatureTransform(f'text_features_ood_{args.noise_type}.npy'),
                               audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
                               image_transform=image_transform, ood=True)
 train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [int(0.8 * len(train_dataset)),
