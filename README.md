@@ -21,12 +21,21 @@ The dataset allows controlled injection of uncertainties, facilitating the study
 - Git
 
 ### Installation
+Make sure you have git-lfs installed (https://git-lfs.com)
+```
+git lfs install
+```
+Download the dataset
+```bash
+git clone https://huggingface.co/datasets/bezirganyan/LUMA
+cd LUMA
+rm -rf .git
+```
 
 Clone the repository and navigate into the project directory:
 
 ```bash
-git clone https://github.com/bezirganyan/LUMA.git
-cd LUMA
+git clone https://github.com/bezirganyan/LUMA.git .
 ```
 
 Install and activate the conda enviroment
@@ -34,6 +43,7 @@ Install and activate the conda enviroment
 conda env create -f environment.yml
 conda activate luma_env
 ```
+
 
 ### Usage
 The provided Python tool allows compiling different versions of the dataset with various amounts and types of uncertainties.
