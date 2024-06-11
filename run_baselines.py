@@ -15,7 +15,7 @@ from baselines.de_model import DEModel
 from baselines.dirichlet import DirichletModel
 from baselines.mc_model import MCDModel
 from data_generation.text_processing import extract_deep_text_features
-from dataset import MultiMUQDataset
+from dataset import LUMADataset
 
 pl.seed_everything(42)
 
@@ -84,20 +84,20 @@ image_transform = Compose([
     Normalize(mean=(0.51, 0.49, 0.44),
               std=(0.27, 0.26, 0.28))
 ])
-train_dataset = MultiMUQDataset(train_image_path, train_audio_path, train_audio_data_path, train_text_path,
-                                text_transform=Text2FeatureTransform(f'text_features_train_{args.noise_type}.npy'),
-                                audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
-                                image_transform=image_transform)
+train_dataset = LUMADataset(train_image_path, train_audio_path, train_audio_data_path, train_text_path,
+                            text_transform=Text2FeatureTransform(f'text_features_train_{args.noise_type}.npy'),
+                            audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
+                            image_transform=image_transform)
 
-test_dataset = MultiMUQDataset(test_image_path, test_audio_path, test_audio_data_path, test_text_path,
-                               text_transform=Text2FeatureTransform(f'text_features_test_{args.noise_type}.npy'),
-                               audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
-                               image_transform=image_transform)
+test_dataset = LUMADataset(test_image_path, test_audio_path, test_audio_data_path, test_text_path,
+                           text_transform=Text2FeatureTransform(f'text_features_test_{args.noise_type}.npy'),
+                           audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
+                           image_transform=image_transform)
 
-ood_dataset = MultiMUQDataset(ood_image_path, ood_audio_path, ood_audio_data_path, ood_text_path,
-                              text_transform=Text2FeatureTransform(f'text_features_ood_{args.noise_type}.npy'),
-                              audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
-                              image_transform=image_transform, ood=True)
+ood_dataset = LUMADataset(ood_image_path, ood_audio_path, ood_audio_data_path, ood_text_path,
+                          text_transform=Text2FeatureTransform(f'text_features_ood_{args.noise_type}.npy'),
+                          audio_transform=Compose([MelSpectrogram(), PadCutToSizeAudioTransform(128)]),
+                          image_transform=image_transform, ood=True)
 train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [int(0.8 * len(train_dataset)),
                                                                            len(train_dataset) - int(
                                                                                0.8 * len(train_dataset))])

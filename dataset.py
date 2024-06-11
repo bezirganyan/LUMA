@@ -5,7 +5,7 @@ import torchaudio
 from torch.utils.data import Dataset
 
 
-class MultiMUQDataset(Dataset):
+class LUMADataset(Dataset):
     def __init__(self, image_path, audio_path, audio_data_path, text_path, image_transform=None, audio_transform=None,
                  text_transform=None,
                  target_transform=None, ood=False):
@@ -64,5 +64,5 @@ if __name__ == '__main__':
     audio_data_path = 'data/audio'
     text_path = 'data/text_data_train.tsv'
 
-    dataset = MultiMUQDataset(image_path, audio_path, audio_data_path, text_path)
+    dataset = LUMADataset(image_path, audio_path, audio_data_path, text_path)
     print('\n'.join([dataset[i][-2] for i in range(1800, 1810)]))
