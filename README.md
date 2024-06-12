@@ -24,7 +24,7 @@ The dataset allows controlled injection of uncertainties, facilitating the study
 Clone the repository and navigate into the project directory:
 
 ```bash
-git clone https://github.com/bezirganyan/LUMA.git .
+git clone https://github.com/bezirganyan/LUMA.git 
 cd LUMA
 ```
 Install and activate the conda enviroment
