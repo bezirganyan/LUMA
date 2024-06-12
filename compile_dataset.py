@@ -114,10 +114,8 @@ def generate_text_modality(text_tsv_path, text_test_path, features_path, diversi
 def generate_image_modality(image_data_path, image_test_path, features_path, diversity_cfg,
                             sample_nosie_cfg, label_switch_prob):
     print("[*] Generating image modality")
-    regenerate_data = False
     if not os.path.exists(image_data_path) or not os.path.exists(image_test_path):
         print(f'[-] Image data not found at {image_data_path}')
-        regenerate_data = True
         data, test_data = generate_cifar_50_data(image_data_path, image_test_path)
     else:
         data = pd.read_pickle(image_data_path)
@@ -131,11 +129,11 @@ def generate_image_modality(image_data_path, image_test_path, features_path, div
     if not features_path.endswith('.npy'):
         features_path = features_path + '.npy'
     test_features_path = features_path.replace('.npy', '_test.npy')
-    if not os.path.exists(features_path) or regenerate_data:
+    if not os.path.exists(features_path):
         print(f'[*] Extracting deep features from {image_data_path}')
         train_features = extract_deep_image_features(data, features_path)
         print('[+] Features saved successfully!')
-    if not os.path.exists(test_features_path) or regenerate_data:
+    if not os.path.exists(test_features_path):
         print(f'[*] Extracting deep features from {image_test_path}')
         test_features = extract_deep_image_features(test_data, test_features_path)
         print('[+] Features saved successfully!')
@@ -176,7 +174,7 @@ def generate_cifar_50_data(image_csv_path, image_test_path, data_path='./data'):
     data_100, test_data_100, label_names_100 = load_cifar100(data_path)
     print('[+] CIFAR-100 dataset loaded successfully!')
     print('[*] Loading generated CIFAR-100 dataset')
-    edm_data = get_edm_generated_data(data_path, label_names_100, label_class_mapping.keys())
+    edm_data = get_edm_generated_data(data_path)
     print('[+] Loaded generated CIFAR-100 dataset loaded successfully!')
     edm_data['source'] = 'synthetic100'
     data_100['source'] = 'cifar100'

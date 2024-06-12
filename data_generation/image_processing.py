@@ -114,17 +114,8 @@ def get_cifar_50():
     return data, test_data
 
 
-def get_edm_generated_data(data_dir, label_names, returned_classes, num_samples_per_class=1000):
-    url = 'https://huggingface.co/datasets/P2333/DM-Improves-AT/resolve/main/cifar100/1m.npz'
-    if not os.path.exists(os.path.join(data_dir, 'generated_1m.npz')):
-        download_url(url, os.path.join(data_dir, 'generated_1m.npz'))
-    data = np.load(os.path.join(data_dir, 'generated_1m.npz'))
-    images = data['image']
-    labels = data['label']
-    labels = [label_names[label] for label in labels]
-    data = pd.DataFrame({'image': list(images), 'label': labels})
-    data = data[data['label'].isin(returned_classes)]
-    data = data.groupby('label').apply(lambda x: x.sample(num_samples_per_class)).reset_index(drop=True)
+def get_edm_generated_data(data_dir):
+    data = pd.read_pickle(os.path.join(data_dir, 'edm_images.pickle'))
     return data
 
 
