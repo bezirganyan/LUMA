@@ -83,22 +83,15 @@ def generate_text_modality(text_tsv_path, text_test_path, features_path, diversi
         extract_deep_text_features(text_tsv_path, features_path)
         print('[+] Features saved successfully!')
 
-    if os.path.exists(text_test_path):
-        print(f'[+] Test data found at {text_test_path}')
-        test_data = pd.read_csv(text_test_path, sep='\t', index_col=0)
-        print(f'[*] Sampling text data from {text_tsv_path}')
-        train_data = train_data[~train_data.index.isin(test_data.index)]
-        train_data = sample_text(train_data, features_path, **diversity_cfg, n_samples_per_class=500)
-        print('[+] Text data sampled successfully!')
+    text_indices = np.loadtxt(os.path.join('split_indices', 'text_test.txt')).astype(int)
+    test_data = data.loc[text_indices]
+    train_data = train_data[~train_data.index.isin(test_data.index)]
+    if diversity_cfg.get('compactness', 0) == 0:
+        train_indices = np.loadtxt(os.path.join('split_indices', 'text_train_clean.txt')).astype(int)
+        train_data = train_data.loc[train_indices]
     else:
-        print(f'[-] Test data not found at {text_test_path}')
-        print(f'[*] Generating test data from {text_tsv_path}')
-        print(f'[*] Sampling text data from {text_tsv_path}')
-        train_data = sample_text(train_data, features_path, **diversity_cfg, n_samples_per_class=600)
-        print('[+] Text data sampled successfully!')
-        train_data, test_data = generate_test_split(train_data, test_count_per_label=100, features_path=features_path)
-        test_data.to_csv(text_test_path, sep='\t')
-        print('[+] Test data generated successfully!')
+        train_data = sample_text(train_data, features_path, **diversity_cfg, n_samples_per_class=500)
+    print('[+] Text data sampled successfully!')
     if sample_nosie_cfg.pop('add_noise_train', False):
         print('[*] Adding noise to train data')
         train_data = add_noise_to_text(train_data, **sample_nosie_cfg)
