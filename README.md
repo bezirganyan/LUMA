@@ -33,7 +33,7 @@ conda env create -f environment.yml
 conda activate luma_env
 ```
 
-Make sure you have git-lfs installed (https://git-lfs.com), it will be automatically installed by conda if you did previous steps.
+Make sure you have git-lfs installed (https://git-lfs.com), it will be automatically installed by conda if you did previous steps. Then perform:
 ```
 git lfs install
 ```
