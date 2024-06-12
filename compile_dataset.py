@@ -34,7 +34,7 @@ def generate_audio_modality(data_dir, audio_csv_path, audio_test_csv, audio_data
         if not os.path.exists(sample_nosie_cfg['output_path']):
             os.makedirs(sample_nosie_cfg['output_path'])
     print("[*] Generating audio modality")
-    data = pd.read_csv(audio_csv_path, index_col=0)
+    data = pd.read_csv(audio_csv_path)
     data['class'] = data['label'].apply(lambda x: label_class_mapping[x])
     train_data = data[data['label'].isin(ID_class_labels)]
     if not os.path.exists(features_path):
