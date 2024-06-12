@@ -193,7 +193,7 @@ def extract_deep_image_features(data, output_path='data/features.npy', model_wei
     model.classifier[-1] = torch.nn.Sequential(
         torch.nn.Linear(4096, 512),
         torch.nn.ReLU(),
-        torch.nn.Linear(512, len(data['label'].unique()))
+        torch.nn.Linear(512, 50)
     )
     model.eval()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
