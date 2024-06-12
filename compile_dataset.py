@@ -37,23 +37,21 @@ def generate_audio_modality(data_dir, audio_csv_path, audio_test_csv, audio_data
     data = pd.read_csv(audio_csv_path)
     data['class'] = data['label'].apply(lambda x: label_class_mapping[x])
     train_data = data[data['label'].isin(ID_class_labels)]
+
     if not os.path.exists(features_path):
         print(f'[*] Extracting deep features from {audio_csv_path}')
         extract_audio_deep_features(audio_csv_path, audio_data_path, features_path)
         print('[+] Features saved successfully!')
-    if os.path.exists(audio_test_csv):
-        print(f'[+] Test data found at {audio_test_csv}')
-        test_data = pd.read_csv(audio_test_csv, index_col=0)
-        train_data = train_data[~train_data.index.isin(test_data.index)]
-    else:
-        print(f'[-] Test data not found at {audio_test_csv}')
-        print(f'[*] Generating test data from {audio_csv_path}')
-        train_data, test_data = generate_test_split(train_data, test_count_per_label=100, features_path=features_path)
-        test_data.to_csv(audio_test_csv)
-        print('[+] Test data generated successfully!')
+    test_indices = np.loadtxt(os.path.join('split_indices', 'audio_test.txt')).astype(int)
+    test_data = data.loc[test_indices]
+    train_data = train_data[~train_data.index.isin(test_data.index)]
     assert set(train_data['path'].values).intersection(test_data['path'].values) == set()
     print(f'[*] Sampling audio data from {audio_csv_path}')
-    train_data = sample_audio(train_data, features_path, **diversity_cfg)
+    if diversity_cfg.get('compactness', 0) == 0:
+        train_indices = np.loadtxt(os.path.join('split_indices', 'audio_train_clean.txt')).astype(int)
+        train_data = train_data.loc[train_indices]
+    else:
+        train_data = sample_audio(train_data, features_path, **diversity_cfg)
     print('[+] Audio data sampled successfully!')
     if sample_nosie_cfg.pop('add_noise_train', False):
         print(f'[*] Adding noise to train data')
