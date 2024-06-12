@@ -192,7 +192,7 @@ def generate_cifar_50_data(image_csv_path, image_test_path, data_path='./data'):
     data_to_save = data.copy()
     data_to_save.to_pickle(image_csv_path)
     test_data = test_data.reset_index(drop=True)
-    test_data_10.to_pickle(image_test_path)
+    test_data.to_pickle(image_test_path)
     data = pd.read_pickle(image_csv_path)
     assert data.equals(data_to_save)
     print('[+] Image data saved successfully!')
