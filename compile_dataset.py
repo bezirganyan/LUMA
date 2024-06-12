@@ -137,9 +137,16 @@ def generate_image_modality(image_data_path, image_test_path, features_path, div
     test_data['class'] = test_data['label'].apply(lambda x: label_class_mapping[x])
     train_data = data[data['label'].isin(ID_class_labels)]
     test_data = test_data[test_data['label'].isin(ID_class_labels)]
+    if not features_path.endswith('.npy'):
+        features_path = features_path + '.npy'
+    test_features_path = features_path.replace('.npy', '_test.npy')
     if not os.path.exists(features_path) or regenerate_data:
         print(f'[*] Extracting deep features from {image_data_path}')
-        features = extract_deep_image_features(data, features_path)
+        train_features = extract_deep_image_features(data, features_path)
+        print('[+] Features saved successfully!')
+    if not os.path.exists(test_features_path) or regenerate_data:
+        print(f'[*] Extracting deep features from {image_test_path}')
+        test_features = extract_deep_image_features(test_data, test_features_path)
         print('[+] Features saved successfully!')
 
     print(f'[*] Sampling image data from {image_data_path}')
@@ -148,23 +155,23 @@ def generate_image_modality(image_data_path, image_test_path, features_path, div
     assert train_data['label'].value_counts().min() >= 500
     train_data = sample_text(train_data, features_path, **diversity_cfg, n_samples_per_class=500)
     assert test_data['label'].value_counts().min() >= 100
-    test_data = sample_text(test_data, features_path, **diversity_cfg, n_samples_per_class=100)
+    test_data = sample_text(test_data, test_features_path, **diversity_cfg, n_samples_per_class=100)
     print('[+] Image data sampled successfully!')
     if sample_nosie_cfg.pop('add_noise_train', False):
         print(f'[*] Adding noise to train data')
-        train_data = add_noise_to_image(train_data, **sample_nosie_cfg)
-        print('[+] Noise added to train data successfully!')
+    train_data = add_noise_to_image(train_data, **sample_nosie_cfg)
+    print('[+] Noise added to train data successfully!')
     ood_data = data[~data['label'].isin(ID_class_labels)]
     if sample_nosie_cfg.pop('add_noise_test', False):
         print(f'[*] Adding noise to test and OOD data')
-        test_data = add_noise_to_image(test_data, **sample_nosie_cfg)
-        ood_data = add_noise_to_image(ood_data, **sample_nosie_cfg)
-        print('[+] Noise added to test and OOD data successfully!')
+    test_data = add_noise_to_image(test_data, **sample_nosie_cfg)
+    ood_data = add_noise_to_image(ood_data, **sample_nosie_cfg)
+    print('[+] Noise added to test and OOD data successfully!')
     if label_switch_prob > 0:
         print(f'[*] Switching labels of train and test data')
-        train_data = switch_image_data_labels(train_data, features_path, switch_probability=label_switch_prob)
-        test_data = switch_image_data_labels(test_data, features_path, switch_probability=label_switch_prob)
-        print('[+] Labels switched successfully!')
+    train_data = switch_image_data_labels(train_data, features_path, switch_probability=label_switch_prob)
+    test_data = switch_image_data_labels(test_data, test_features_path, switch_probability=label_switch_prob)
+    print('[+] Labels switched successfully!')
     print('[+] Image modality generated successfully!')
     return train_data, test_data, ood_data
 
