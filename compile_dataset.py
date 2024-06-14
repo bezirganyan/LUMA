@@ -117,15 +117,15 @@ def generate_image_modality(image_data_path, image_test_path, features_path, div
     if not os.path.exists(image_data_path) or not os.path.exists(image_test_path):
         print(f'[-] Image data not found at {image_data_path}')
         data, test_data = generate_cifar_50_data(image_data_path, image_test_path)
-        test_data = test_data[test_data['label'].isin(label_class_mapping.keys())].reset_index(drop=True)
+        test_data = test_data[test_data['label'].isin(label_class_mapping.keys())]
+        test_data = test_data[test_data['label'].isin(ID_class_labels)].reset_index(drop=True)
         test_data['class'] = test_data['label'].apply(lambda x: label_class_mapping[x])
-        train_data = data[data['label'].isin(ID_class_labels)].reset_index(drop=True)
     else:
         data = pd.read_pickle(image_data_path)
         test_data = pd.read_pickle(image_test_path)
     data = data[data['label'].isin(label_class_mapping.keys())]
     data['class'] = data['label'].apply(lambda x: label_class_mapping[x])
-    test_data = test_data[test_data['label'].isin(ID_class_labels)]
+    train_data = data[data['label'].isin(ID_class_labels)]
     if not features_path.endswith('.npy'):
         features_path = features_path + '.npy'
     test_features_path = features_path.replace('.npy', '_test.npy')
