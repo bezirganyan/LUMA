@@ -50,7 +50,7 @@ To compile the dataset with specified uncertainties, create or edit the configur
 python compile_dataset.py -c <your_yaml_config_file>
 ```
 
-### Usage in Deel Learning models
+### Usage in Deep Learning models
 After compiling the dataset, you can use the `LUMADataset` class from the `dataset.py` file. Example of the usage can be found in `run_baselines.py` file.
 
 
