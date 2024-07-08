@@ -1,0 +1,17 @@
+data:
+  data_dir: data
+  seed: 42
+
+audio:
+  audio_csv_path: data/audio/datalist.csv # path to the csv file containing the audio data
+  audio_out_csv_path: data/audio_data_unprocessed.csv # path to the csv file where the data will be saved
+  audio_data_path: data/audio # path to the directory containing the audio data
+
+text:
+  text_tsv_path: data/text_data.tsv # path to the tsv file containing the text data
+  text_out_tsv_path: data/text_data_unprocessed.tsv # path to the tsv file where the data will be saved
+
+image:
+    image_data_path: data/image_data.pickle # path to the pickle file containing the image data
+    image_test_path: data/image_data_test.pickle # path to the pickle file where the test data will be saved
+    image_out_path: data/image_data_unprocessed.pickle # path to the pickle file where the data will be saved
