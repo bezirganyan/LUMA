@@ -55,6 +55,25 @@ python compile_dataset.py -c <your_yaml_config_file>
 ### Usage in Deep Learning models
 After compiling the dataset, you can use the `LUMADataset` class from the `dataset.py` file. Example of the usage can be found in `run_baselines.py` file.
 
+### Unprocessed & Unaigned data
+If you want to get all the data (without sampling or noise) without alignment (to perform your own alignment, or use the data without alignment for other tasks) you can run the following command:
+
+```
+python get_unprocessed_data.py
+```
+
+If you use the dataset, please cite our paper preprint with:
+```
+@article{bezirganyan2024lumabenchmarkdatasetlearning,
+      title={LUMA: A Benchmark Dataset for Learning from Uncertain and Multimodal Data}, 
+      author={Grigor Bezirganyan and Sana Sellami and Laure Berti-Équille and Sébastien Fournier},
+      year={2024},
+      eprint={2406.09864},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2406.09864}, 
+}
+```
 
 ## Contact
 
