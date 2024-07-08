@@ -1,4 +1,5 @@
 # LUMA: Learning from Uncertain and Multimodal Data
+![Screenshot-20240708174237-1456x489](https://github.com/bezirganyan/LUMA/assets/16824193/f97782ad-d28e-4559-b32b-f0660b4d46cd)
 
 ## Overview
 
