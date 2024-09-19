@@ -1,0 +1,120 @@
+data:
+  data_dir: data
+  seed: 42
+  conflict: 0.4
+
+audio:
+  audio_csv_path: data/audio/datalist.csv # path to the csv file containing the audio data
+  audio_train_csv_path: data/audio/datalist_train.csv # path to the csv file where the training data will be saved
+  audio_test_csv_path: data/audio/datalist_test_conflict.csv # path to the csv file where the test data will be saved
+  audio_data_path: data/audio # path to the directory containing the audio data
+  audio_ood_csv_path: data/audio/datalist_ood.csv # path to the csv file where the out-of-distribution data will be saved
+  audio_features_path: data/audio_features.npy # path to the file where the audio features will be saved
+  diversity: # parameters controlling the diversity of the data
+    compactness: 0 # compactness of the data, 0 means uniformly random samples, the higher the value the more compact the data will be
+    num_sampling: 10 # generate this many samples, and choose the one with the highest diversity
+  sample_noise: # parameters controlling the noise added to the data
+    add_noise_train: False # whether to add noise to the training data
+    add_noise_test: False # whether to add noise to the test data
+    noisy_data_ratio: 0.5 # what fraction of the data should be noisy
+    min_snr: 3 # minimum signal-to-noise ratio
+    max_snr: 10 # maximum signal-to-noise ratio
+    output_path: data/noisy_audio # path to the directory where the noisy audio data will be saved
+  label_switch_prob: 0. # probability of switching the labels (what fraction of the data should have switched labels)
+
+text:
+  text_tsv_path: data/text_data.tsv # path to the tsv file containing the text data
+  text_test_tsv_path: data/text_data_test_conflict.tsv # path to the tsv file where the test data will be saved
+  text_train_tsv_path: data/text_data_train.tsv # path to the tsv file where the training data will be saved
+  text_ood_tsv_path: data/text_data_ood.tsv # path to the tsv file where the out-of-distribution data will be saved
+  text_features_path: data/text_features.npy # path to the file where the text features will be saved
+  diversity:
+    compactness: 0 # compactness of the data, 0 means uniformly random samples, the higher the value the more compact the data will be
+    num_sampling: 10 # generate this many samples, and choose the one with the highest diversity
+  sample_noise: # parameters controlling the noise added to the data
+    add_noise_train: False # whether to add noise to the training data
+    add_noise_test: False # whether to add noise to the test data
+    noisy_data_ratio: 0.5 # what fraction of the data should be noisy
+    noise_config:
+      # You can add the following noise types to the text data:
+      # - KeyboardNoise
+      # - BackTranslationNoise
+      # - SpellingNoise
+      # - OCRNoise
+      # - RandomCharNoise
+      # - RandomWordNoise
+      # - AntonymNoise
+      # For the parameters of each noise, please refer to https://nlpaug.readthedocs.io/en/latest/
+      KeyboardNoise:
+        aug_char_min: 1
+        aug_char_max: 5
+        aug_word_min: 1
+        aug_word_max: 3
+      SynonymNoise:
+        aug_min: 1
+        aug_max: 3
+  label_switch_prob: 0.
+
+image:
+    image_data_path: data/image_data.pickle # path to the pickle file containing the image data
+    image_train_path: data/image_data_train.pickle # path to the pickle file where the training data will be saved
+    image_test_path: data/image_data_test_conflict.pickle # path to the pickle file where the test data will be saved
+    image_ood_path: data/image_data_ood.pickle # path to the pickle file where the out-of-distribution data will be saved
+#    image_data_path: data/image
+    image_features_path: data/image_features.npy # path to the file where the image features will be saved
+    diversity: # parameters controlling the diversity of the data
+      compactness: 0 # compactness of the data, 0 means uniformly random samples, the higher the value the more compact the data will be
+      num_sampling: 10 # generate this many samples, and choose the one with the highest diversity
+    sample_noise:
+        add_noise_train: False # whether to add noise to the training data
+        add_noise_test: False # whether to add noise to the test data
+        noisy_data_ratio: 0.5 # what fraction of the data should be noisy
+        output_path: data/noisy_images.pth # path to the file where the noisy images will be saved
+        noise_config: # parameters controlling the noise added to the data, you can add the following noise types to the image data:
+          # - gaussian_noise
+          # - shot_noise
+          # - impulse_noise
+          # - defocus_blur
+          # - frosted_glass_blur
+          # - motion_blur
+          # - zoom_blur
+          # - snow
+          # - frost
+          # - fog
+          # - brightness
+          # - contrast
+          # - elastic
+          # - pixelate
+          # - jpeg_compression
+          # each noise type has a severity parameter 1-5, which controls the strength of the noise
+          gaussian_noise:
+            severity: 1
+          shot_noise:
+              severity: 1
+          impulse_noise:
+            severity: 1
+          defocus_blur:
+            severity: 1
+          frosted_glass_blur:
+            severity: 1
+          motion_blur:
+            severity: 1
+          zoom_blur:
+            severity: 1
+          snow:
+            severity: 1
+          frost:
+            severity: 1
+          fog:
+            severity: 1
+          brightness:
+            severity: 1
+          contrast:
+            severity: 1
+          elastic:
+            severity: 1
+          pixelate:
+            severity: 1
+          jpeg_compression:
+            severity: 1
+    label_switch_prob: 0. # probability of switching the labels (what fraction of the data should have switched labels)

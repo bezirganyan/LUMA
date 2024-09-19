@@ -212,7 +212,7 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
     return args, unknown
 
 
-def align_data(audio, text, image):
+def align_data(audio, text, image, conflict=None):
     audio_chunks = []
     text_chunks = []
     image_chunks = []
@@ -223,6 +223,17 @@ def align_data(audio, text, image):
         audio_chunks.append(a)
         text_chunks.append(t)
         image_chunks.append(i)
+    if conflict is not None:
+        print(f'[*] Adding conflict to {conflict*100}% of samples')
+        for lab_ind, label in enumerate(ID_class_labels):
+            conlict_indices = np.random.choice(range(len(audio_chunks)), int(conflict*len(audio_chunks[lab_ind])), replace=False)
+            for idx in conlict_indices:
+                v = np.random.randint(3)
+                modality = [audio_chunks, text_chunks, image_chunks][v]
+                modality[lab_ind].iloc[idx] = modality[(lab_ind + 1) % len(ID_class_labels)].iloc[idx]
+                modality[lab_ind].loc[modality[lab_ind].index[idx], 'label'] = label
+        print('[+] Conflict added successfully!')
+
     audio = pd.concat(audio_chunks, axis=0)
     text = pd.concat(text_chunks, axis=0)
     image = pd.concat(image_chunks, axis=0)
@@ -286,14 +297,17 @@ if __name__ == '__main__':
                                                                  diversity_cfg=image_cfg.diversity,
                                                                  sample_nosie_cfg=image_cfg.sample_noise,
                                                                  label_switch_prob=image_cfg.label_switch_prob)
-
+    if data_cfg.seed is not None:
+        np.random.seed(data_cfg.seed)
+        torch.manual_seed(data_cfg.seed)
     # align the data from different modalities, so that the labels are mached and shuffled(within label)
     print('Image train shape:', image_train.shape, 'Image test shape:', image_test.shape, 'Image OOD shape:')
     print('Audio train shape:', audio_train.shape, 'Audio test shape:', audio_test.shape, 'Audio OOD shape:')
     print('Text train shape:', text_train.shape, 'Text test shape:', text_test.shape, 'Text OOD shape:')
     audio_train, text_train, image_train = align_data(audio_train, text_train, image_train)
-    audio_test, text_test, image_test = align_data(audio_test, text_test, image_test)
+    audio_test, text_test, image_test = align_data(audio_test, text_test, image_test, conflict=data_cfg.get('conflict', None))
     audio_ood, text_ood, image_ood = align_ood_data(audio_ood, text_ood, image_ood)
+    image_test['class'] = image_test['label'].apply(lambda x: label_class_mapping[x])
     assert audio_train.shape[0] == text_train.shape[0] == image_train.shape[0]
     assert audio_test.shape[0] == text_test.shape[0] == image_test.shape[0]
     assert audio_ood.shape[0] == text_ood.shape[0] == image_ood.shape[0]
