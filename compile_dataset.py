@@ -226,7 +226,7 @@ def align_data(audio, text, image, conflict=None):
     if conflict is not None:
         print(f'[*] Adding conflict to {conflict*100}% of samples')
         for lab_ind, label in enumerate(ID_class_labels):
-            conlict_indices = np.random.choice(range(len(audio_chunks)), int(conflict*len(audio_chunks[lab_ind])), replace=False)
+            conlict_indices = np.random.choice(range(len(audio_chunks[lab_ind])), int(conflict*len(audio_chunks[lab_ind])), replace=False)
             for idx in conlict_indices:
                 v = np.random.randint(3)
                 modality = [audio_chunks, text_chunks, image_chunks][v]
