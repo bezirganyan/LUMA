@@ -67,7 +67,7 @@ python get_unprocessed_data.py
 
 If you use the dataset, please cite our paper preprint with:
 ```
-@inproceedings{zhang2024commerce,
+@inproceedings{bezirganyan2025luma,
   title={LUMA: A Benchmark Dataset for Learning from Uncertain and Multimodal Data}, 
   author={Grigor Bezirganyan and Sana Sellami and Laure Berti-Équille and Sébastien Fournier},
   booktitle={Proceedings of the 48th International ACM SIGIR Conference on Research and Development in Information Retrieval},
