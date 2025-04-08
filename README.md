@@ -1,15 +1,14 @@
 # LUMA: Learning from Uncertain and Multimodal Data
 ![Screenshot-20240708174237-1456x489](https://github.com/bezirganyan/LUMA/assets/16824193/f97782ad-d28e-4559-b32b-f0660b4d46cd)
 
-Accepted to SIGIR 2025 Conference
+
 
 ## Overview
 
 LUMA is a multimodal dataset designed for benchmarking multimodal learning and multimodal uncertainty quantification. This dataset includes audio, text, and image modalities, enabling researchers to study uncertainty quantification in multimodal classification settings.
 
-The paper was submitted to NeurIPS 2024 and ICLR 2025 conferences, and upon improvements based on the reviews is now under review at SigIR 2025 conference.
-* [NeurIPS 2024 Reviews](./review/NeurIPS2024.md) 
-* [ICLR 2025 Reviews](https://openreview.net/forum?id=lh0iTFCD1y&noteId=Qix72jzQIo)
+The paper is accepted and will be presented at SIGIR 2025 Conference
+
 ## Dataset Summary
 
 LUMA consists of:
