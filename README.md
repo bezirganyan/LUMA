@@ -65,9 +65,9 @@ If you want to get all the data (without sampling or noise) without alignment (t
 python get_unprocessed_data.py
 ```
 
-If you use the dataset, please cite our paper preprint with:
+If you use the dataset, please cite our paper with:
 ```
-@inproceedings{bezirganyan2025luma,
+@inproceedings{luma_dataset2025,
   title={LUMA: A Benchmark Dataset for Learning from Uncertain and Multimodal Data}, 
   author={Grigor Bezirganyan and Sana Sellami and Laure Berti-Équille and Sébastien Fournier},
   booktitle={Proceedings of the 48th International ACM SIGIR Conference on Research and Development in Information Retrieval},
