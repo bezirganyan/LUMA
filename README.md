@@ -67,14 +67,11 @@ python get_unprocessed_data.py
 
 If you use the dataset, please cite our paper preprint with:
 ```
-@article{bezirganyan2024lumabenchmarkdatasetlearning,
-      title={LUMA: A Benchmark Dataset for Learning from Uncertain and Multimodal Data}, 
-      author={Grigor Bezirganyan and Sana Sellami and Laure Berti-Équille and Sébastien Fournier},
-      year={2024},
-      eprint={2406.09864},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2406.09864}, 
+@inproceedings{zhang2024commerce,
+  title={LUMA: A Benchmark Dataset for Learning from Uncertain and Multimodal Data}, 
+  author={Grigor Bezirganyan and Sana Sellami and Laure Berti-Équille and Sébastien Fournier},
+  booktitle={Proceedings of the 48th International ACM SIGIR Conference on Research and Development in Information Retrieval},
+  year={2025}
 }
 ```
 
