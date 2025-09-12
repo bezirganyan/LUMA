@@ -7,7 +7,7 @@
 
 LUMA is a multimodal dataset designed for benchmarking multimodal learning and multimodal uncertainty quantification. This dataset includes audio, text, and image modalities, enabling researchers to study uncertainty quantification in multimodal classification settings.
 
-The paper is accepted and will be presented at SIGIR 2025 Conference
+The paper was presented at SIGIR 2025 Conference. ([Link to the pre-print](https://arxiv.org/abs/2406.09864))
 
 ## Dataset Summary
 
